@@ -1,353 +1,208 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Adryvo AI — Imagine it. Generate it.</title>
-  <meta name="description" content="Adryvo AI — turn simple ideas into professional visuals." />
-  <style>
-    * { box-sizing: border-box; margin: 0; padding: 0; }
-    :root {
-      --bg: #05070b;
-      --panel: #0b1018;
-      --panel2: #101722;
-      --line: rgba(255,255,255,.09);
-      --text: #f5f7fb;
-      --muted: #8d98aa;
-      --blue: #4f8cff;
-      --blue2: #77a8ff;
-    }
-    html { scroll-behavior: smooth; }
-    body {
-      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-      color: var(--text);
-      background:
-        radial-gradient(circle at 50% 0%, rgba(62,117,255,.16), transparent 34%),
-        radial-gradient(circle at 85% 35%, rgba(31,87,190,.08), transparent 25%),
-        var(--bg);
-      min-height: 100vh;
-    }
-    a { color: inherit; text-decoration: none; }
-    button, textarea, select { font: inherit; }
-    .container { width: min(1160px, calc(100% - 32px)); margin: auto; }
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Adryvo-AI</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
 
-    nav {
-      height: 74px;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      border-bottom: 1px solid var(--line);
-      position: sticky;
-      top: 0;
-      z-index: 20;
-      background: rgba(5,7,11,.78);
-      backdrop-filter: blur(18px);
-    }
-    .brand { display:flex; align-items:center; gap:10px; font-weight:800; font-size:20px; letter-spacing:-.5px; }
-    .logo {
-      width:34px; height:34px; border-radius:11px;
-      display:grid; place-items:center;
-      background: linear-gradient(135deg,#77a8ff,#376fe9);
-      box-shadow: 0 0 28px rgba(79,140,255,.35);
-      font-size:18px;
-    }
-    .navlinks { display:flex; gap:28px; color:#aab3c1; font-size:14px; }
-    .navlinks a:hover { color:#fff; }
-    .nav-actions { display:flex; gap:10px; align-items:center; }
-    .btn {
-      border:1px solid var(--line);
-      background:#0d131c;
-      color:#fff;
-      padding:11px 17px;
-      border-radius:11px;
-      cursor:pointer;
-      transition:.2s;
-      font-weight:650;
-    }
-    .btn:hover { transform:translateY(-1px); border-color:rgba(119,168,255,.4); }
-    .btn.primary {
-      border:0;
-      background:linear-gradient(135deg,#6199ff,#386fe8);
-      box-shadow:0 10px 35px rgba(57,111,232,.24);
-    }
+        body {
+            background-color: #0f172a;
+            color: #f8fafc;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
 
-    .hero { text-align:center; padding:92px 0 50px; }
-    .pill {
-      display:inline-flex; align-items:center; gap:8px;
-      border:1px solid rgba(103,153,255,.22);
-      background:rgba(70,117,230,.08);
-      color:#a8c5ff;
-      border-radius:999px;
-      padding:7px 13px;
-      font-size:12px;
-      margin-bottom:24px;
-    }
-    .dot { width:7px; height:7px; border-radius:50%; background:#65a0ff; box-shadow:0 0 12px #65a0ff; }
-    h1 {
-      font-size:clamp(46px,8vw,86px);
-      line-height:.98;
-      letter-spacing:-5px;
-      max-width:900px;
-      margin:auto;
-    }
-    .gradient { background:linear-gradient(90deg,#fff 20%,#77a8ff 75%,#c8dbff); -webkit-background-clip:text; background-clip:text; color:transparent; }
-    .hero p { max-width:650px; margin:24px auto 30px; color:var(--muted); line-height:1.7; font-size:17px; }
-    .hero-buttons { display:flex; justify-content:center; gap:12px; flex-wrap:wrap; }
+        .container {
+            width: 100%;
+            max-width: 400px;
+            background: #1e293b;
+            padding: 30px;
+            border-radius: 16px;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.3);
+            text-align: center;
+        }
 
-    .generator {
-      margin:55px auto 90px;
-      border:1px solid var(--line);
-      border-radius:24px;
-      background:linear-gradient(180deg,rgba(16,23,34,.92),rgba(7,10,15,.94));
-      box-shadow:0 30px 100px rgba(0,0,0,.35);
-      overflow:hidden;
-    }
-    .gen-top { padding:22px 24px; border-bottom:1px solid var(--line); display:flex; justify-content:space-between; align-items:center; }
-    .gen-title { font-weight:750; }
-    .status { color:#7e8ba0; font-size:12px; }
-    .gen-body { display:grid; grid-template-columns:1.05fr .95fr; gap:0; }
-    .controls { padding:26px; border-right:1px solid var(--line); }
-    label { display:block; font-size:12px; color:#aab3c1; margin-bottom:9px; }
-    textarea {
-      width:100%; min-height:150px; resize:vertical;
-      border:1px solid var(--line); outline:none; border-radius:15px;
-      background:#070b11; color:#eaf0f9; padding:15px;
-      line-height:1.6;
-    }
-    textarea:focus { border-color:rgba(90,145,255,.65); box-shadow:0 0 0 3px rgba(79,140,255,.08); }
-    .field { margin-bottom:20px; }
-    .row { display:grid; grid-template-columns:1fr 1fr; gap:12px; }
-    select {
-      width:100%; padding:12px; border-radius:12px; border:1px solid var(--line);
-      background:#090e16; color:#eaf0f9; outline:none;
-    }
-    .generate { width:100%; margin-top:4px; padding:14px; border-radius:13px; border:0; color:#fff; cursor:pointer; font-weight:800; background:linear-gradient(135deg,#6199ff,#386fe8); }
-    .preview { padding:26px; min-height:470px; display:flex; align-items:center; justify-content:center; background:radial-gradient(circle at 50% 45%,rgba(60,111,226,.13),transparent 48%); }
-    .art {
-      width:min(100%,440px); aspect-ratio:1/1; border-radius:20px; position:relative; overflow:hidden;
-      background:
-        radial-gradient(circle at 50% 42%, rgba(143,188,255,.85) 0 4%, transparent 5%),
-        radial-gradient(circle at 50% 45%, rgba(55,111,232,.55), transparent 27%),
-        radial-gradient(circle at 30% 30%, rgba(255,255,255,.12), transparent 16%),
-        linear-gradient(145deg,#162641,#060b13 58%,#0e1d38);
-      border:1px solid rgba(255,255,255,.1);
-      box-shadow:0 30px 70px rgba(0,0,0,.4);
-    }
-    .art:before {
-      content:"ADRYVO AI";
-      position:absolute; left:24px; top:22px; font-size:10px; letter-spacing:3px; color:rgba(255,255,255,.5);
-    }
-    .art:after {
-      content:"YOUR CREATIVE VISION";
-      position:absolute; left:24px; bottom:24px; font-size:9px; letter-spacing:2px; color:rgba(255,255,255,.5);
-    }
-    .bottle {
-      position:absolute; left:50%; top:52%; transform:translate(-50%,-50%);
-      width:110px; height:170px; border-radius:24px 24px 18px 18px;
-      background:linear-gradient(100deg,rgba(255,255,255,.22),rgba(255,255,255,.04) 30%,rgba(17,28,47,.8));
-      border:1px solid rgba(255,255,255,.25);
-      box-shadow:0 20px 60px rgba(75,139,255,.4);
-    }
-    .bottle:before {
-      content:""; position:absolute; width:52px; height:28px; left:29px; top:-25px;
-      border-radius:8px 8px 3px 3px; background:#1b2638; border:1px solid rgba(255,255,255,.2);
-    }
-    .bottle span { position:absolute; inset:65px 15px auto; text-align:center; font-size:10px; letter-spacing:2px; color:#dce9ff; }
+        /* Home Screen Style */
+        #home-screen h1 {
+            font-size: 28px;
+            margin-bottom: 10px;
+            color: #38bdf8;
+        }
 
-    .section { padding:70px 0; }
-    .section-head { text-align:center; margin-bottom:36px; }
-    .section-head h2 { font-size:38px; letter-spacing:-1.8px; }
-    .section-head p { color:var(--muted); margin-top:10px; }
-    .cards { display:grid; grid-template-columns:repeat(3,1fr); gap:16px; }
-    .card { border:1px solid var(--line); background:rgba(12,17,25,.72); border-radius:18px; padding:24px; }
-    .icon { width:42px; height:42px; border-radius:12px; display:grid; place-items:center; background:rgba(79,140,255,.12); color:#8eb5ff; margin-bottom:18px; font-size:19px; }
-    .card h3 { margin-bottom:9px; }
-    .card p { color:var(--muted); line-height:1.6; font-size:14px; }
+        #home-screen p {
+            color: #94a3b8;
+            margin-bottom: 30px;
+            font-size: 14px;
+        }
 
-    .cta { margin:45px 0 80px; text-align:center; padding:65px 25px; border:1px solid var(--line); border-radius:24px; background:radial-gradient(circle at 50% 0%,rgba(72,123,240,.16),transparent 50%),#090e15; }
-    .cta h2 { font-size:42px; letter-spacing:-2px; }
-    .cta p { color:var(--muted); margin:12px auto 24px; max-width:550px; }
+        .btn {
+            width: 100%;
+            padding: 12px;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background 0.3s ease;
+        }
 
-    footer { border-top:1px solid var(--line); padding:28px 0; color:#737e90; font-size:13px; }
-    footer .container { display:flex; justify-content:space-between; gap:15px; flex-wrap:wrap; }
+        .btn-primary {
+            background-color: #38bdf8;
+            color: #0f172a;
+        }
 
-    .toast { position:fixed; right:18px; bottom:18px; padding:13px 16px; border:1px solid var(--line); background:#111824; border-radius:12px; color:#dce7f8; opacity:0; transform:translateY(10px); pointer-events:none; transition:.25s; z-index:50; }
-    .toast.show { opacity:1; transform:translateY(0); }
+        .btn-primary:hover {
+            background-color: #0ea5e9;
+        }
 
-    @media (max-width: 800px) {
-      .navlinks { display:none; }
-      .gen-body { grid-template-columns:1fr; }
-      .controls { border-right:0; border-bottom:1px solid var(--line); }
-      .cards { grid-template-columns:1fr; }
-      h1 { letter-spacing:-3px; }
-      .hero { padding-top:70px; }
-    }
-    @media (max-width: 500px) {
-      .container { width:min(100% - 22px,1160px); }
-      nav { height:66px; }
-      .nav-actions .btn:first-child { display:none; }
-      .gen-top { padding:18px; }
-      .controls,.preview { padding:18px; }
-      .hero p { font-size:15px; }
-      .section-head h2,.cta h2 { font-size:31px; }
-    }
-  </style>
+        /* Auth Screen Style */
+        .auth-screen {
+            display: none;
+            text-align: left;
+        }
+
+        .auth-screen h2 {
+            margin-bottom: 20px;
+            font-size: 22px;
+            text-align: center;
+            color: #f8fafc;
+        }
+
+        .form-group {
+            margin-bottom: 15px;
+        }
+
+        .form-group label {
+            display: block;
+            font-size: 13px;
+            margin-bottom: 5px;
+            color: #cbd5e1;
+        }
+
+        .form-group input {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #475569;
+            background: #0f172a;
+            color: #fff;
+            border-radius: 6px;
+            font-size: 14px;
+        }
+
+        .form-group input:focus {
+            outline: none;
+            border-color: #38bdf8;
+        }
+
+        .switch-text {
+            margin-top: 15px;
+            text-align: center;
+            font-size: 13px;
+            color: #94a3b8;
+        }
+
+        .switch-text span {
+            color: #38bdf8;
+            cursor: pointer;
+            font-weight: 600;
+        }
+
+        .back-btn {
+            background: transparent;
+            border: none;
+            color: #94a3b8;
+            margin-top: 10px;
+            cursor: pointer;
+            font-size: 13px;
+            width: 100%;
+            text-align: center;
+        }
+
+        .back-btn:hover {
+            color: #fff;
+        }
+    </style>
 </head>
 <body>
-  <nav>
-    <div class="container" style="display:flex;align-items:center;justify-content:space-between;width:100%;">
-      <a class="brand" href="#"><span class="logo">✦</span> Adryvo AI</a>
-      <div class="navlinks">
-        <a href="#generator">Generate</a>
-        <a href="#features">Features</a>
-        <a href="#pricing">Pricing</a>
-      </div>
-      <div class="nav-actions">
-        <button class="btn" onclick="showToast('Login system will be connected next.')">Sign In</button>
-        <button class="btn primary" onclick="document.getElementById('generator').scrollIntoView({behavior:'smooth'})">Get Started</button>
-      </div>
-    </div>
-  </nav>
 
-  <main>
-    <section class="hero container">
-      <div class="pill"><span class="dot"></span> The creative AI studio by Adryvo</div>
-      <h1>Turn your ideas into <span class="gradient">visuals.</span></h1>
-      <p>Create professional images from simple prompts. Built for creators, brands and businesses that want to move from idea to visual faster.</p>
-      <div class="hero-buttons">
-        <button class="btn primary" onclick="document.getElementById('generator').scrollIntoView({behavior:'smooth'})">Start Creating →</button>
-        <a class="btn" href="#features">Explore Features</a>
-      </div>
-    </section>
-
-    <section class="container generator" id="generator">
-      <div class="gen-top">
-        <div class="gen-title">Create an image</div>
-        <div class="status">● Ready to generate</div>
-      </div>
-      <div class="gen-body">
-        <div class="controls">
-          <div class="field">
-            <label for="prompt">PROMPT</label>
-            <textarea id="prompt" placeholder="Describe the image you want...">Luxury perfume bottle on a reflective black surface, cinematic blue lighting, premium product photography, dramatic shadows, ultra detailed</textarea>
-          </div>
-          <div class="row">
-            <div class="field">
-              <label for="style">STYLE</label>
-              <select id="style">
-                <option>Photorealistic</option>
-                <option>Cinematic</option>
-                <option>3D Render</option>
-                <option>Illustration</option>
-              </select>
-            </div>
-            <div class="field">
-              <label for="ratio">ASPECT RATIO</label>
-              <select id="ratio">
-                <option>1:1 Square</option>
-                <option>4:5 Portrait</option>
-                <option>16:9 Landscape</option>
-              </select>
-            </div>
-          </div>
-          <div class="row">
-            <div class="field">
-              <label for="quality">QUALITY</label>
-              <select id="quality">
-                <option>Standard</option>
-                <option>HD</option>
-              </select>
-            </div>
-            <div class="field">
-              <label for="variations">VARIATIONS</label>
-              <select id="variations">
-                <option>1 Image</option>
-                <option>2 Images</option>
-                <option>4 Images</option>
-              </select>
-            </div>
-          </div>
-          <button class="generate" onclick="generateDemo()">Generate Image ✦</button>
-        </div>
-        <div class="preview">
-          <div class="art" id="art"><div class="bottle"><span>ADRYVO</span></div></div>
-        </div>
-      </div>
-    </section>
-
-    <section class="section container" id="features">
-      <div class="section-head">
-        <h2>Built for creative work.</h2>
-        <p>Everything you need to turn a prompt into a polished visual.</p>
-      </div>
-      <div class="cards">
-        <div class="card">
-          <div class="icon">✦</div>
-          <h3>Prompt to Image</h3>
-          <p>Describe your concept in natural language and generate visuals designed around your idea.</p>
-        </div>
-        <div class="card">
-          <div class="icon">◈</div>
-          <h3>Creative Styles</h3>
-          <p>Choose from photorealistic, cinematic, 3D and illustration-focused visual directions.</p>
-        </div>
-        <div class="card">
-          <div class="icon">↗</div>
-          <h3>Made for Brands</h3>
-          <p>Create product concepts, social visuals, campaign ideas and creative assets faster.</p>
-        </div>
-      </div>
-    </section>
-
-    <section class="section container" id="pricing">
-      <div class="section-head">
-        <h2>Start simple. Scale when ready.</h2>
-        <p>Pricing and credits can be connected when the production AI engine is added.</p>
-      </div>
-      <div class="cards">
-        <div class="card"><h3>Free</h3><p>Explore Adryvo AI with a limited number of generations and standard quality.</p></div>
-        <div class="card"><h3>Pro</h3><p>More generations, HD output, advanced styles and faster creative workflows.</p></div>
-        <div class="card"><h3>Business</h3><p>Higher usage, team workflows and features designed for commercial projects.</p></div>
-      </div>
-    </section>
-
-    <section class="container cta">
-      <h2>Imagine it. Generate it.</h2>
-      <p>Adryvo AI is being built to make professional visual creation faster and more accessible.</p>
-      <button class="btn primary" onclick="document.getElementById('generator').scrollIntoView({behavior:'smooth'})">Try the Generator →</button>
-    </section>
-  </main>
-
-  <footer>
     <div class="container">
-      <span>© 2026 Adryvo AI. Built by Adryvo.</span>
-      <span>AI image generation platform</span>
+        <!-- Home / Welcome Screen -->
+        <div id="home-screen">
+            <h1>Adryvo-AI</h1>
+            <p>Your intelligent AI companion for modern workflows.</p>
+            <button class="btn btn-primary" onclick="showAuth('login')">Get Started</button>
+        </div>
+
+        <!-- Login Screen -->
+        <div id="login-screen" class="auth-screen">
+            <h2>Welcome Back</h2>
+            <div class="form-group">
+                <label>Email</label>
+                <input type="email" placeholder="Enter your email">
+            </div>
+            <div class="form-group">
+                <label>Password</label>
+                <input type="password" placeholder="Enter your password">
+            </div>
+            <button class="btn btn-primary" style="margin-top: 10px;">Login</button>
+            <p class="switch-text">Don't have an account? <span onclick="showAuth('signup')">Sign Up</span></p>
+            <button class="back-btn" onclick="showHome()">Back</button>
+        </div>
+
+        <!-- Sign Up Screen -->
+        <div id="signup-screen" class="auth-screen">
+            <h2>Create Account</h2>
+            <div class="form-group">
+                <label>Full Name</label>
+                <input type="text" placeholder="Enter your name">
+            </div>
+            <div class="form-group">
+                <label>Email</label>
+                <input type="email" placeholder="Enter your email">
+            </div>
+            <div class="form-group">
+                <label>Password</label>
+                <input type="password" placeholder="Create a password">
+            </div>
+            <button class="btn btn-primary" style="margin-top: 10px;">Sign Up</button>
+            <p class="switch-text">Already have an account? <span onclick="showAuth('login')">Login</span></p>
+            <button class="back-btn" onclick="showHome()">Back</button>
+        </div>
     </div>
-  </footer>
 
-  <div class="toast" id="toast"></div>
+    <script>
+        const homeScreen = document.getElementById('home-screen');
+        const loginScreen = document.getElementById('login-screen');
+        const signupScreen = document.getElementById('signup-screen');
 
-  <script>
-    function showToast(message) {
-      const t = document.getElementById('toast');
-      t.textContent = message;
-      t.classList.add('show');
-      setTimeout(() => t.classList.remove('show'), 2600);
-    }
+        function showAuth(type) {
+            homeScreen.style.display = 'none';
+            if (type === 'login') {
+                loginScreen.style.display = 'block';
+                signupScreen.style.display = 'none';
+            } else {
+                loginScreen.style.display = 'none';
+                signupScreen.style.display = 'block';
+            }
+        }
 
-    function generateDemo() {
-      const prompt = document.getElementById('prompt').value.trim();
-      if (!prompt) {
-        showToast('Please enter a prompt first.');
-        return;
-      }
-      const art = document.getElementById('art');
-      art.animate(
-        [{opacity:.45, transform:'scale(.98)'},{opacity:1, transform:'scale(1)'}],
-        {duration:650, easing:'ease-out'}
-      );
-      showToast('Demo generation complete — real AI generation will be connected next.');
-    }
-  </script>
+        function showHome() {
+            homeScreen.style.display = 'block';
+            loginScreen.style.display = 'none';
+            signupScreen.style.display = 'none';
+        }
+    </script>
+
 </body>
 </html>

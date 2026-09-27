@@ -4,6 +4,70 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Adryvo-AI</title>
+    <!-- Firebase App (Modular SDK) -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+        import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
+
+        // TODO: Apni Firebase Console ki configuration yahan daalein
+        const firebaseConfig = {
+            apiKey: "YOUR_API_KEY",
+            authDomain: "YOUR_AUTH_DOMAIN",
+            projectId: "YOUR_PROJECT_ID",
+            storageBucket: "YOUR_STORAGE_BUCKET",
+            messagingSenderId: "YOUR_MESSAGING_SENDER_ID",
+            appId: "YOUR_APP_ID"
+        };
+
+        // Initialize Firebase
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+
+        // Make auth functions global so buttons can access them
+        window.handleSignUp = function() {
+            const email = document.getElementById('signup-email').value;
+            const pass = document.getElementById('signup-pass').value;
+            createUserWithEmailAndPassword(auth, email, pass)
+                .then((userCredential) => {
+                    alert("Sign up successful!");
+                    showDashboard();
+                })
+                .catch((error) => {
+                    alert(error.message);
+                });
+        };
+
+        window.handleLogin = function() {
+            const email = document.getElementById('login-email').value;
+            const pass = document.getElementById('login-pass').value;
+            signInWithEmailAndPassword(auth, email, pass)
+                .then((userCredential) => {
+                    alert("Login successful!");
+                    showDashboard();
+                })
+                .catch((error) => {
+                    alert(error.message);
+                });
+        };
+
+        window.handleLogout = function() {
+            signOut(auth).then(() => {
+                showHome();
+            }).catch((error) => {
+                alert(error.message);
+            });
+        };
+
+        // Check user state
+        onAuthStateChanged(auth, (user) => {
+            if (user) {
+                showDashboard();
+            } else {
+                // Stay on home/auth
+            }
+        });
+    </script>
+
     <style>
         * {
             margin: 0;
@@ -33,14 +97,14 @@
             text-align: center;
         }
 
-        /* Home Screen Style */
-        #home-screen h1 {
+        /* Screens */
+        #home-screen h1, #dashboard-screen h1 {
             font-size: 28px;
             margin-bottom: 10px;
             color: #38bdf8;
         }
 
-        #home-screen p {
+        #home-screen p, #dashboard-screen p {
             color: #94a3b8;
             margin-bottom: 30px;
             font-size: 14px;
@@ -60,14 +124,24 @@
         .btn-primary {
             background-color: #38bdf8;
             color: #0f172a;
+            margin-top: 10px;
         }
 
         .btn-primary:hover {
             background-color: #0ea5e9;
         }
 
-        /* Auth Screen Style */
-        .auth-screen {
+        .btn-danger {
+            background-color: #ef4444;
+            color: #fff;
+            margin-top: 15px;
+        }
+
+        .btn-danger:hover {
+            background-color: #dc2626;
+        }
+
+        .auth-screen, #dashboard-screen {
             display: none;
             text-align: left;
         }
@@ -138,7 +212,7 @@
 
     <div class="container">
         <!-- Home / Welcome Screen -->
-        <div id="home-screen">
+        <div id="home-screen" style="text-align: center;">
             <h1>Adryvo-AI</h1>
             <p>Your intelligent AI companion for modern workflows.</p>
             <button class="btn btn-primary" onclick="showAuth('login')">Get Started</button>
@@ -149,13 +223,13 @@
             <h2>Welcome Back</h2>
             <div class="form-group">
                 <label>Email</label>
-                <input type="email" placeholder="Enter your email">
+                <input type="email" id="login-email" placeholder="Enter your email">
             </div>
             <div class="form-group">
                 <label>Password</label>
-                <input type="password" placeholder="Enter your password">
+                <input type="password" id="login-pass" placeholder="Enter your password">
             </div>
-            <button class="btn btn-primary" style="margin-top: 10px;">Login</button>
+            <button class="btn btn-primary" onclick="handleLogin()">Login</button>
             <p class="switch-text">Don't have an account? <span onclick="showAuth('signup')">Sign Up</span></p>
             <button class="back-btn" onclick="showHome()">Back</button>
         </div>
@@ -164,20 +238,23 @@
         <div id="signup-screen" class="auth-screen">
             <h2>Create Account</h2>
             <div class="form-group">
-                <label>Full Name</label>
-                <input type="text" placeholder="Enter your name">
-            </div>
-            <div class="form-group">
                 <label>Email</label>
-                <input type="email" placeholder="Enter your email">
+                <input type="email" id="signup-email" placeholder="Enter your email">
             </div>
             <div class="form-group">
                 <label>Password</label>
-                <input type="password" placeholder="Create a password">
+                <input type="password" id="signup-pass" placeholder="Create a password">
             </div>
-            <button class="btn btn-primary" style="margin-top: 10px;">Sign Up</button>
+            <button class="btn btn-primary" onclick="handleSignUp()">Sign Up</button>
             <p class="switch-text">Already have an account? <span onclick="showAuth('login')">Login</span></p>
             <button class="back-btn" onclick="showHome()">Back</button>
+        </div>
+
+        <!-- Dashboard Screen (After Login) -->
+        <div id="dashboard-screen" style="text-align: center;">
+            <h1>Dashboard</h1>
+            <p>Welcome to Adryvo-AI! You are successfully logged in.</p>
+            <button class="btn btn-danger" onclick="handleLogout()">Logout</button>
         </div>
     </div>
 
@@ -185,9 +262,11 @@
         const homeScreen = document.getElementById('home-screen');
         const loginScreen = document.getElementById('login-screen');
         const signupScreen = document.getElementById('signup-screen');
+        const dashboardScreen = document.getElementById('dashboard-screen');
 
         function showAuth(type) {
             homeScreen.style.display = 'none';
+            dashboardScreen.style.display = 'none';
             if (type === 'login') {
                 loginScreen.style.display = 'block';
                 signupScreen.style.display = 'none';
@@ -201,6 +280,14 @@
             homeScreen.style.display = 'block';
             loginScreen.style.display = 'none';
             signupScreen.style.display = 'none';
+            dashboardScreen.style.display = 'none';
+        }
+
+        function showDashboard() {
+            homeScreen.style.display = 'none';
+            loginScreen.style.display = 'none';
+            signupScreen.style.display = 'none';
+            dashboardScreen.style.display = 'block';
         }
     </script>
 

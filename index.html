@@ -92,7 +92,7 @@
             });
         }
 
-        // AI Generation & Local History Storage
+        // AI Generation with Preloading & Error Handling
         function generateAIImage() {
             if(!currentUser) {
                 alert("Please sign in to generate images!");
@@ -109,21 +109,26 @@
                 return;
             }
 
-            resultBox.innerHTML = `<div class="loading-spinner">Generating masterpiece for "${prompt}"...</div>`;
+            resultBox.innerHTML = `<div class="loading-spinner">Generating masterpiece for "${prompt}"... Please wait a moment.</div>`;
 
             const fullPrompt = `${prompt}, ${style} style`;
             const encoded = encodeURIComponent(fullPrompt);
             const imageUrl = `https://image.pollinations.ai/prompt/${encoded}`;
 
-            setTimeout(() => {
+            const img = new Image();
+            img.src = imageUrl;
+            img.onload = function() {
                 resultBox.innerHTML = `
-                    <div class="result-card animate-fade">
-                        <img src="${imageUrl}" alt="${prompt}" style="width:100%; border-radius:12px; max-height:400px; object-fit:cover;">
+                    <div class="result-card" style="margin-top: 20px; text-align: center;">
+                        <img src="${imageUrl}" alt="${prompt}" style="width:100%; max-width: 500px; border-radius:12px; box-shadow: 0 8px 20px rgba(0,0,0,0.5);">
                         <p style="margin-top:10px; color:#cbd5e1; font-size:14px;"><strong>Prompt:</strong> ${prompt} (${style})</p>
                         <button class="btn-primary-sm" style="margin-top:10px;" onclick="saveToHistory('${imageUrl}', '${prompt.replace(/'/g, "")}')">Save to History</button>
                     </div>
                 `;
-            }, 1200);
+            };
+            img.onerror = function() {
+                resultBox.innerHTML = `<p style="color: #ef4444; text-align: center; margin-top:20px;">Failed to generate image. Please try a different prompt.</p>`;
+            };
         }
 
         function saveToHistory(url, prompt) {
@@ -304,7 +309,7 @@
             border: 1px solid var(--border-color);
             border-radius: 16px;
             padding: 30px;
-            margin-bottom: 60px;
+            margin-bottom: 30px;
         }
 
         .generator-box h3 { font-size: 20px; margin-bottom: 15px; }
@@ -324,7 +329,7 @@
             color: white;
             font-size: 14px;
             resize: none;
-            height: 50px;
+            height: 70px;
         }
 
         .prompt-input-group textarea:focus { outline: none; border-color: var(--primary); }
@@ -457,7 +462,7 @@
             <li><a onclick="switchTab('pricing')">Pricing</a></li>
         </ul>
         <div class="nav-actions" id="nav-auth-btn">
-            <!-- Dynamically populated by auth state -->
+            <!-- Dynamically populated -->
         </div>
     </nav>
 
@@ -524,7 +529,7 @@
         <div id="view-history" style="display: none;">
             <h2 style="margin-bottom: 25px; font-size: 28px;">My Personal Creations</h2>
             <div class="gallery-grid" id="history-grid">
-                <!-- Loaded dynamically from LocalStorage -->
+                <!-- Loaded dynamically -->
             </div>
         </div>
 

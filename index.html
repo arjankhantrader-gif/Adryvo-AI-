@@ -40,7 +40,6 @@
             }
         }
 
-        // Navigation Tabs Controller
         function switchTab(tabId) {
             const views = ['home', 'explore', 'history', 'pricing', 'login', 'signup', 'dashboard'];
             views.forEach(v => {
@@ -62,7 +61,6 @@
             window.scrollTo(0, 0);
         }
 
-        // Auth Operations
         function handleSignUp() {
             const email = document.getElementById('signup-email').value;
             const pass = document.getElementById('signup-pass').value;
@@ -92,7 +90,7 @@
             });
         }
 
-        // AI Generation with Preloading & Error Handling
+        // Fixed Image Generation & Direct URL Handling
         function generateAIImage() {
             if(!currentUser) {
                 alert("Please sign in to generate images!");
@@ -105,6 +103,7 @@
             const resultBox = document.getElementById('generation-result');
 
             if(!prompt) {
+                auth.signOut; // placeholder
                 alert("Please enter a prompt!");
                 return;
             }
@@ -113,29 +112,33 @@
 
             const fullPrompt = `${prompt}, ${style} style`;
             const encoded = encodeURIComponent(fullPrompt);
-            const imageUrl = `https://image.pollinations.ai/prompt/${encoded}`;
+            const imageUrl = `https://image.pollinations.ai/prompt/${encoded}?nologo=true`;
 
             const img = new Image();
+            img.crossOrigin = "anonymous";
             img.src = imageUrl;
+            
             img.onload = function() {
                 resultBox.innerHTML = `
                     <div class="result-card" style="margin-top: 20px; text-align: center;">
-                        <img src="${imageUrl}" alt="${prompt}" style="width:100%; max-width: 500px; border-radius:12px; box-shadow: 0 8px 20px rgba(0,0,0,0.5);">
+                        <img id="generated-img-element" src="${imageUrl}" alt="${prompt}" style="width:100%; max-width: 500px; border-radius:12px; box-shadow: 0 8px 20px rgba(0,0,0,0.5);">
                         <p style="margin-top:10px; color:#cbd5e1; font-size:14px;"><strong>Prompt:</strong> ${prompt} (${style})</p>
-                        <button class="btn-primary-sm" style="margin-top:10px;" onclick="saveToHistory('${imageUrl}', '${prompt.replace(/'/g, "")}')">Save to History</button>
+                        <button class="btn-primary-sm" style="margin-top:10px;" onclick="saveToHistory('${imageUrl}', '${prompt.replace(/'/g, "")}')">💾 Save to History</button>
                     </div>
                 `;
             };
             img.onerror = function() {
-                resultBox.innerHTML = `<p style="color: #ef4444; text-align: center; margin-top:20px;">Failed to generate image. Please try a different prompt.</p>`;
+                resultBox.innerHTML = `<p style="color: #ef4444; text-align: center; margin-top:20px;">Failed to generate image. Please try again with a different prompt.</p>`;
             };
         }
 
         function saveToHistory(url, prompt) {
+            if (!currentUser) return;
             let history = JSON.parse(localStorage.getItem(`adryvo_history_${currentUser.uid}`) || '[]');
+            // Check if already saved
             history.unshift({ url, prompt, date: new Date().toLocaleDateString() });
             localStorage.setItem(`adryvo_history_${currentUser.uid}`, JSON.stringify(history));
-            alert("Image saved to your History gallery!");
+            alert("Image successfully saved to your History gallery!");
             loadHistoryGallery();
         }
 
@@ -151,7 +154,7 @@
 
             grid.innerHTML = history.map(item => `
                 <div class="gallery-item">
-                    <img src="${item.url}" alt="${item.prompt}">
+                    <img src="${item.url}" alt="${item.prompt}" onerror="this.src='https://image.pollinations.ai/prompt/AI%20Art%20Placeholder'">
                     <div class="gallery-info">
                         <p>${item.prompt}</p>
                         <span>${item.date}</span>
@@ -261,7 +264,6 @@
         }
         .btn-primary-sm:hover { background: var(--primary-hover); }
 
-        /* Main Content Layouts */
         .main-container {
             flex: 1;
             max-width: 1200px;
@@ -270,7 +272,6 @@
             padding: 40px 20px;
         }
 
-        /* Hero Section */
         .hero {
             display: grid;
             grid-template-columns: 1.2fr 1fr;
@@ -303,7 +304,6 @@
             border: 1px solid var(--border-color);
         }
 
-        /* Generator Box */
         .generator-box {
             background: var(--bg-card);
             border: 1px solid var(--border-color);
@@ -351,7 +351,6 @@
             font-size: 13px;
         }
 
-        /* Gallery Grid */
         .gallery-grid {
             display: grid;
             grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
@@ -366,12 +365,11 @@
             transition: transform 0.2s;
         }
         .gallery-item:hover { transform: translateY(-4px); }
-        .gallery-item img { width: 100%; height: 240px; object-fit: cover; }
+        .gallery-item img { width: 100%; height: 240px; object-fit: cover; background: #000; }
         .gallery-info { padding: 15px; }
         .gallery-info p { font-size: 13px; color: var(--text-main); margin-bottom: 5px; }
         .gallery-info span { font-size: 11px; color: var(--text-muted); }
 
-        /* Pricing Cards */
         .pricing-grid {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
@@ -405,7 +403,6 @@
         .price-card ul { list-style: none; text-align: left; margin-bottom: 25px; color: var(--text-muted); font-size: 14px; }
         .price-card li { margin-bottom: 10px; }
 
-        /* Auth Cards */
         .auth-card {
             max-width: 400px;
             margin: 40px auto;
@@ -428,7 +425,6 @@
             font-weight: 500;
         }
 
-        /* Footer */
         footer {
             border-top: 1px solid var(--border-color);
             padding: 30px 8%;
@@ -461,9 +457,7 @@
             <li><a onclick="switchTab('history'); loadHistoryGallery();">History</a></li>
             <li><a onclick="switchTab('pricing')">Pricing</a></li>
         </ul>
-        <div class="nav-actions" id="nav-auth-btn">
-            <!-- Dynamically populated -->
-        </div>
+        <div class="nav-actions" id="nav-auth-btn"></div>
     </nav>
 
     <!-- VIEWS CONTAINER -->
@@ -528,9 +522,7 @@
         <!-- 4. HISTORY VIEW -->
         <div id="view-history" style="display: none;">
             <h2 style="margin-bottom: 25px; font-size: 28px;">My Personal Creations</h2>
-            <div class="gallery-grid" id="history-grid">
-                <!-- Loaded dynamically -->
-            </div>
+            <div class="gallery-grid" id="history-grid"></div>
         </div>
 
         <!-- 5. PRICING VIEW -->

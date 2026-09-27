@@ -98,16 +98,18 @@
             resultBox.innerHTML = `
                 <div style="text-align:center; padding: 80px; background: rgba(13, 18, 32, 0.9); border-radius: 20px; border: 1px solid rgba(59, 130, 246, 0.3);">
                     <div class="spinner"></div>
-                    <p style="color: #60a5fa; margin-top: 15px; font-weight: 600; font-size: 15px;">AI is rendering your real image with watermark...</p>
+                    <p style="color: #60a5fa; margin-top: 15px; font-weight: 600; font-size: 15px;">Generating Ultra-Realistic HD Image...</p>
                 </div>
             `;
 
-            const fullPrompt = `${promptInput}, ${style}, highly detailed, 8k resolution, photorealistic masterpiece`;
+            // Upgraded ultra-realistic prompt keywords matching selected style
+            const fullPrompt = `${promptInput}, ${style}, masterpiece, highly detailed, photorealistic, 8k resolution, sharp focus, professional photography`;
             const encodedPrompt = encodeURIComponent(fullPrompt);
             const seed = Math.floor(Math.random() * 9999999);
-            const rawImageUrl = `https://image.pollinations.ai/prompt/${encodedPrompt}?width=1200&height=700&seed=${seed}&nologo=true&enhance=true`;
+            
+            // Using Flux model endpoint for supreme realism
+            const rawImageUrl = `https://image.pollinations.ai/prompt/${encodedPrompt}?model=flux&width=1344&height=768&seed=${seed}&nologo=true`;
 
-            // Load image into canvas to stamp watermark
             const img = new Image();
             img.crossOrigin = "anonymous";
             img.src = rawImageUrl;
@@ -118,42 +120,36 @@
                 canvas.height = img.height;
                 const ctx = canvas.getContext('2d');
                 
-                // Draw original AI image
                 ctx.drawImage(img, 0, 0);
 
-                // Watermark Styling
-                const fontSize = Math.max(22, Math.floor(canvas.width / 35));
+                // Watermark setup
+                const fontSize = Math.max(20, Math.floor(canvas.width / 40));
                 ctx.font = `bold ${fontSize}px Inter, sans-serif`;
-                ctx.fillStyle = "rgba(255, 255, 255, 0.75)";
-                ctx.shadowColor = "rgba(0, 0, 0, 0.8)";
-                ctx.shadowBlur = 10;
                 ctx.textAlign = "right";
 
-                // Position at bottom-right corner
-                const x = canvas.width - 35;
-                const y = canvas.height - 35;
-
-                // Draw background pill for watermark
+                const x = canvas.width - 30;
+                const y = canvas.height - 30;
                 const text = "⚡ ADRYVO AI";
                 const textMetrics = ctx.measureText(text);
-                const padding = 16;
+                const padding = 14;
                 
-                ctx.fillStyle = "rgba(7, 9, 19, 0.65)";
+                // Draw badge background
+                ctx.fillStyle = "rgba(7, 9, 19, 0.75)";
                 ctx.beginPath();
-                ctx.roundRect(x - textMetrics.width - (padding * 2), y - fontSize - padding, textMetrics.width + (padding * 2), fontSize + (padding * 1.5), 10);
+                ctx.roundRect(x - textMetrics.width - (padding * 2), y - fontSize - padding, textMetrics.width + (padding * 2), fontSize + (padding * 1.5), 8);
                 ctx.fill();
 
-                // Draw text over pill
+                // Draw Watermark text
                 ctx.fillStyle = "#ffffff";
                 ctx.fillText(text, x - padding, y - 5);
 
-                const finalWatermarkedUrl = canvas.toDataURL('image/jpeg', 0.95);
+                const finalWatermarkedUrl = canvas.toDataURL('image/jpeg', 0.98);
 
                 resultBox.innerHTML = `
                     <div class="showcase-card fade-in">
                         <img src="${finalWatermarkedUrl}" alt="${promptInput}">
                         <div class="card-overlay-actions">
-                            <span class="ai-gen-badge">✨ AI Generated & Watermarked</span>
+                            <span class="ai-gen-badge">✨ AI Real Generated</span>
                             <div style="display: flex; gap: 8px;">
                                 <a href="${finalWatermarkedUrl}" target="_blank" download="adryvo-ai.jpg" class="icon-btn" title="Download">📥</a>
                                 <button class="icon-btn" onclick="saveToHistory('${finalWatermarkedUrl}', '${promptInput.replace(/'/g, "")}')" title="Save">💾</button>
@@ -164,7 +160,7 @@
             };
 
             img.onerror = function() {
-                resultBox.innerHTML = `<div class="empty-state" style="color:#ef4444;"><p>Failed to generate image. Please try again with a different prompt.</p></div>`;
+                resultBox.innerHTML = `<div class="empty-state" style="color:#ef4444;"><p>Failed to generate image. Please try again.</p></div>`;
             };
         }
 
@@ -340,7 +336,7 @@
 
             <div class="prompt-container">
                 <div class="textarea-wrap">
-                    <textarea id="ai-prompt" class="prompt-textarea" placeholder="Describe what you want to generate (e.g., A futuristic cyberpunk city at night with neon lights)..." oninput="updateCharCount(this)"></textarea>
+                    <textarea id="ai-prompt" class="prompt-textarea" placeholder="Describe what you want to generate (e.g., A professional athlete riding a high-tech carbon fiber bicycle on a scenic mountain road)..." oninput="updateCharCount(this)"></textarea>
                     <span id="char-count" class="char-counter">0/1000</span>
                 </div>
                 <div class="prompt-bottom-row">
@@ -348,10 +344,10 @@
                         <img src="https://image.pollinations.ai/prompt/luxurious%20landscape%20photography" alt="Style">
                         <div class="style-select-info">
                             <select id="ai-style">
-                                <option value="photorealistic realistic cinematic 8k">Photorealistic</option>
-                                <option value="cinematic movie scene dramatic lighting">Cinematic</option>
-                                <option value="3d blender render unreal engine 5">3D Render</option>
-                                <option value="detailed anime illustration manga art">Anime</option>
+                                <option value="photorealistic ultra-realistic 8k raw photo">Photorealistic</option>
+                                <option value="cinematic movie scene dramatic lighting high detail">Cinematic</option>
+                                <option value="hyper-realistic 3d blender render unreal engine 5">3D Render</option>
+                                <option value="detailed anime illustration manga art style">Anime</option>
                             </select>
                             <span>Realistic & natural</span>
                         </div>
@@ -362,11 +358,11 @@
 
             <div id="generation-result">
                 <div class="showcase-card">
-                    <img src="https://image.pollinations.ai/prompt/three%20wild%20horses%20running%20through%20shallow%20water%20at%20sunset%20cinematic?width=1200&height=700&enhance=true" alt="AI Showcase">
+                    <img src="https://image.pollinations.ai/prompt/a%20professional%20cyclist%20riding%20a%20modern%20road%20bike%20on%20a%20mountain%20highway%20at%20sunrise%20photorealistic?model=flux&width=1344&height=768&nologo=true" alt="AI Showcase">
                     <div class="card-overlay-actions">
-                        <span class="ai-gen-badge">✨ AI Generated</span>
+                        <span class="ai-gen-badge">✨ AI Real Generated</span>
                         <div style="display: flex; gap: 8px;">
-                            <a href="https://image.pollinations.ai/prompt/three%20wild%20horses%20running%20through%20shallow%20water%20at%20sunset%20cinematic?width=1200&height=700&enhance=true" target="_blank" download="adryvo-ai.jpg" class="icon-btn" title="Download">📥</a>
+                            <a href="https://image.pollinations.ai/prompt/a%20professional%20cyclist%20riding%20a%20modern%20road%20bike%20on%20a%20mountain%20highway%20at%20sunrise%20photorealistic?model=flux&width=1344&height=768&nologo=true" target="_blank" download="adryvo-ai.jpg" class="icon-btn" title="Download">📥</a>
                             <button class="icon-btn" onclick="alert('Login to save this image!')" title="Save">💾</button>
                         </div>
                     </div>

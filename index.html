@@ -5,12 +5,12 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Adryvo-AI</title>
     
-    <!-- Firebase SDK (Modular) -->
-    <script type="module">
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-        import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
+    <!-- Firebase App & Auth CDN (Compat Version) -->
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
 
-        // Your Correct Firebase Configuration
+    <script>
+        // Your Firebase Configuration
         const firebaseConfig = {
             apiKey: "AIzaSyDz8dCn5cjop7gptfMEsSNkAG035D-qkYo",
             authDomain: "adryvo-ai.firebaseapp.com",
@@ -22,18 +22,18 @@
         };
 
         // Initialize Firebase
-        const app = initializeApp(firebaseConfig);
-        const auth = getAuth(app);
+        firebase.initializeApp(firebaseConfig);
+        const auth = firebase.auth();
 
-        // Global functions for buttons
-        window.handleSignUp = function() {
+        // Functions for Auth
+        function handleSignUp() {
             const email = document.getElementById('signup-email').value;
             const pass = document.getElementById('signup-pass').value;
             if(!email || !pass) {
                 alert("Please fill all fields");
                 return;
             }
-            createUserWithEmailAndPassword(auth, email, pass)
+            auth.createUserWithEmailAndPassword(email, pass)
                 .then(() => {
                     alert("Sign up successful!");
                     showDashboard();
@@ -41,16 +41,16 @@
                 .catch((error) => {
                     alert(error.message);
                 });
-        };
+        }
 
-        window.handleLogin = function() {
+        function handleLogin() {
             const email = document.getElementById('login-email').value;
             const pass = document.getElementById('login-pass').value;
             if(!email || !pass) {
                 alert("Please fill all fields");
                 return;
             }
-            signInWithEmailAndPassword(auth, email, pass)
+            auth.signInWithEmailAndPassword(email, pass)
                 .then(() => {
                     alert("Login successful!");
                     showDashboard();
@@ -58,17 +58,17 @@
                 .catch((error) => {
                     alert(error.message);
                 });
-        };
+        }
 
-        window.handleLogout = function() {
-            signOut(auth).then(() => {
+        function handleLogout() {
+            auth.signOut().then(() => {
                 showHome();
             }).catch((error) => {
                 alert(error.message);
             });
-        };
+        }
 
-        onAuthStateChanged(auth, (user) => {
+        auth.onAuthStateChanged((user) => {
             if (user) {
                 showDashboard();
             }

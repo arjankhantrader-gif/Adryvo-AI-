@@ -31,6 +31,11 @@
             if (user) {
                 document.getElementById('profile-email').innerText = user.email;
                 document.getElementById('profile-name').innerText = user.displayName || user.email.split('@')[0];
+                document.getElementById('settings-email-display').innerText = user.email;
+            } else {
+                document.getElementById('profile-email').innerText = 'Not signed in';
+                document.getElementById('profile-name').innerText = 'Guest User';
+                document.getElementById('settings-email-display').innerText = 'Not signed in';
             }
             updateProfileStats();
         });
@@ -75,6 +80,7 @@
             }
 
             if(tabId === 'creations') loadHistoryGallery();
+            if(tabId === 'explore') loadExploreGrid();
             if(tabId === 'profile') updateProfileStats();
             
             window.scrollTo(0, 0);
@@ -105,21 +111,24 @@
             const pass = document.getElementById('signup-pass').value;
             if(!email || !pass) { alert("Please enter details"); return; }
             auth.createUserWithEmailAndPassword(email, pass)
-                .then(() => { alert("Account created!"); switchTab('home'); })
+                .then(() => { alert("Account created successfully!"); switchTab('home'); })
                 .catch(err => alert(err.message));
         }
 
         function handleLogout() {
-            auth.signOut().then(() => { switchTab('login'); });
+            auth.signOut().then(() => { 
+                alert("Logged out successfully");
+                switchTab('login'); 
+            });
         }
 
         function updateProfileStats() {
-            if (!currentUser) return;
-            let history = JSON.parse(localStorage.getItem(`adryvo_history_${currentUser.uid}`) || '[]');
-            document.getElementById('stat-images-count').innerText = history.length > 0 ? history.length : '124';
+            const userId = currentUser ? currentUser.uid : 'guest';
+            let history = JSON.parse(localStorage.getItem(`adryvo_history_${userId}`) || '[]');
+            document.getElementById('stat-images-count').innerText = history.length > 0 ? history.length : '0';
         }
 
-        // STEP 5 & 6: AI Generation Flow
+        // STEP 5 & 6: AI Generation Flow with All Options
         function startAIGeneration() {
             const promptInput = document.getElementById('ai-prompt').value;
             if(!promptInput.trim()) { alert("Please enter a prompt!"); return; }
@@ -133,13 +142,14 @@
             const model = document.getElementById('opt-model').value;
             const style = document.getElementById('opt-style').value;
             const aspect = document.getElementById('opt-aspect').value;
+            const quality = document.getElementById('opt-quality').value;
 
             let width = 1024, height = 1024;
             if(aspect === '16:9') { width = 1344; height = 768; }
             else if(aspect === '9:16') { width = 768; height = 1344; }
             else if(aspect === '4:5') { width = 864; height = 1080; }
 
-            const fullPrompt = `${promptInput}, model-${model}, style-${style}, masterpiece, 8k resolution`;
+            const fullPrompt = `${promptInput}, model-${model}, style-${style}, quality-${quality}, masterpiece, highly detailed`;
             const encodedPrompt = encodeURIComponent(fullPrompt);
             const seed = Math.floor(Math.random() * 9999999);
             const rawImageUrl = `https://image.pollinations.ai/prompt/${encodedPrompt}?model=flux&width=${width}&height=${height}&seed=${seed}&nologo=true`;
@@ -160,6 +170,7 @@
                 setTimeout(() => {
                     // Switch to Result Screen (Step 6)
                     document.getElementById('result-image-view').src = activeGenerationImageUrl;
+                    document.getElementById('download-btn-link').href = activeGenerationImageUrl;
                     switchTab('result');
                 }, 1500);
             };
@@ -171,29 +182,31 @@
         }
 
         function saveCurrentCreation() {
-            if (!currentUser) {
-                alert("Please login to save creations!");
-                switchTab('login');
-                return;
-            }
-            let history = JSON.parse(localStorage.getItem(`adryvo_history_${currentUser.uid}`) || '[]');
-            history.unshift({ url: activeGenerationImageUrl, prompt: activeGenerationPrompt, date: new Date().toLocaleDateString() });
-            localStorage.setItem(`adryvo_history_${currentUser.uid}`, JSON.stringify(history));
+            const userId = currentUser ? currentUser.uid : 'guest';
+            let history = JSON.parse(localStorage.getItem(`adryvo_history_${userId}`) || '[]');
+            
+            // Check if already saved
+            history.unshift({ 
+                url: activeGenerationImageUrl, 
+                prompt: activeGenerationPrompt, 
+                date: new Date().toLocaleDateString() + ' ' + new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) 
+            });
+            localStorage.setItem(`adryvo_history_${userId}`, JSON.stringify(history));
             alert("Saved to My Creations successfully!");
             updateProfileStats();
         }
 
         function loadHistoryGallery() {
-            if (!currentUser) return;
+            const userId = currentUser ? currentUser.uid : 'guest';
             const grid = document.getElementById('history-grid');
-            let history = JSON.parse(localStorage.getItem(`adryvo_history_${currentUser.uid}`) || '[]');
+            let history = JSON.parse(localStorage.getItem(`adryvo_history_${userId}`) || '[]');
             
             if (history.length === 0) {
-                grid.innerHTML = `<div class="empty-state"><p>No creations found. Generate some from Home!</p></div>`;
+                grid.innerHTML = `<div class="empty-state"><p>No creations found yet. Generate your first AI artwork from Home!</p></div>`;
                 return;
             }
 
-            grid.innerHTML = history.map(item => `
+            grid.innerHTML = history.map((item, index) => `
                 <div class="gallery-item fade-in" onclick="openDetails('${item.url}', '${item.prompt}')">
                     <img src="${item.url}" alt="${item.prompt}">
                     <div class="gallery-info">
@@ -204,15 +217,48 @@
             `).join('');
         }
 
+        function loadExploreGrid() {
+            const exploreGrid = document.getElementById('explore-grid');
+            const samplePrompts = [
+                { title: "Cyberpunk City", url: "https://image.pollinations.ai/prompt/cyberpunk%20city%20neon%20lights%20rain?nologo=true" },
+                { title: "Astronaut in Space", url: "https://image.pollinations.ai/prompt/astronaut%20floating%20in%20deep%20space%20nebula?nologo=true" },
+                { title: "Mystical Dragon", url: "https://image.pollinations.ai/prompt/majestic%20fire%20dragon%20flying%20over%20mountains?nologo=true" },
+                { title: "Anime Girl", url: "https://image.pollinations.ai/prompt/cute%20anime%20girl%20cherry%20blossom%20spring?nologo=true" },
+                { title: "Luxury Supercar", url: "https://image.pollinations.ai/prompt/luxury%20supercar%20speeding%20on%20desert%20highway?nologo=true" },
+                { title: "Fantasy Castle", url: "https://image.pollinations.ai/prompt/magical%20floating%20fantasy%20castle%20waterfall?nologo=true" }
+            ];
+
+            exploreGrid.innerHTML = samplePrompts.map(item => `
+                <div class="creation-card" onclick="useTemplatePrompt('${item.title}')">
+                    <img src="${item.url}" alt="${item.title}">
+                    <div class="card-tag">✨ ${item.title}</div>
+                </div>
+            `).join('');
+        }
+
         function openDetails(url, prompt) {
             document.getElementById('details-img').src = url;
             document.getElementById('details-prompt').innerText = prompt;
+            document.getElementById('details-download-btn').href = url;
             switchTab('details');
         }
 
         function useTemplatePrompt(text) {
             document.getElementById('ai-prompt').value = text;
             switchTab('home');
+        }
+
+        function shareImage() {
+            if (navigator.share) {
+                navigator.share({
+                    title: 'Adryvo AI Generation',
+                    text: `Check out this AI creation generated with Adryvo: "${activeGenerationPrompt}"`,
+                    url: activeGenerationImageUrl
+                }).catch(console.error);
+            } else {
+                navigator.clipboard.writeText(activeGenerationImageUrl);
+                alert("Image URL copied to clipboard!");
+            }
         }
     </script>
 
@@ -362,7 +408,7 @@
         .bottom-nav-item svg { width: 20px; height: 20px; fill: currentColor; }
 
         .gallery-grid { display: grid; grid-template-columns: 1fr; gap: 12px; }
-        .gallery-item { background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 14px; overflow: hidden; }
+        .gallery-item { background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 14px; overflow: hidden; cursor: pointer; }
         .gallery-item img { width: 100%; height: 200px; object-fit: cover; }
         .gallery-info { padding: 10px; }
         .gallery-info p { font-size: 12px; font-weight: 600; margin-bottom: 2px; }
@@ -536,9 +582,9 @@
                 </div>
 
                 <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; margin-bottom: 15px;">
-                    <a id="download-btn-link" href="#" target="_blank" download="adryvo.jpg" class="quick-chip" style="text-align: center; padding: 12px; background: var(--bg-card); color: white;">📥 Download</a>
+                    <a id="download-btn-link" href="#" target="_blank" download="adryvo.jpg" class="quick-chip" style="text-align: center; padding: 12px; background: var(--bg-card); color: white; text-decoration: none;">📥 Download</a>
                     <button class="quick-chip" onclick="saveCurrentCreation()" style="padding: 12px; background: var(--bg-card); color: white;">💾 Save to Gallery</button>
-                    <button class="quick-chip" onclick="alert('Image shared!')" style="padding: 12px; background: var(--bg-card); color: white;">🔗 Share</button>
+                    <button class="quick-chip" onclick="shareImage()" style="padding: 12px; background: var(--bg-card); color: white;">🔗 Share</button>
                     <button class="quick-chip" onclick="startAIGeneration()" style="padding: 12px; background: var(--bg-card); color: white;">🔄 Regenerate</button>
                 </div>
 
@@ -553,24 +599,14 @@
                 </div>
 
                 <div class="quick-links-row">
-                    <span class="quick-chip" style="background:var(--primary); color:white;">Trending</span>
-                    <span class="quick-chip">Popular</span>
-                    <span class="quick-chip">Portrait</span>
-                    <span class="quick-chip">Fantasy</span>
-                    <span class="quick-chip">Anime</span>
-                    <span class="quick-chip">Architecture</span>
+                    <span class="quick-chip" style="background:var(--primary); color:white;" onclick="loadExploreGrid()">Trending</span>
+                    <span class="quick-chip" onclick="loadExploreGrid()">Popular</span>
+                    <span class="quick-chip" onclick="useTemplatePrompt('Realistic human portrait close up')">Portrait</span>
+                    <span class="quick-chip" onclick="useTemplatePrompt('Epic fantasy world floating islands')">Fantasy</span>
+                    <span class="quick-chip" onclick="useTemplatePrompt('Anime cyberpunk aesthetic scene')">Anime</span>
                 </div>
 
-                <div class="creations-grid">
-                    <div class="creation-card" onclick="useTemplatePrompt('Futuristic sports car driving through neon city')">
-                        <img src="https://image.pollinations.ai/prompt/futuristic%20sports%20car%20neon%20city?nologo=true" alt="Car">
-                        <div class="card-tag">🚗 Car</div>
-                    </div>
-                    <div class="creation-card" onclick="useTemplatePrompt('Magical forest with glowing mushrooms and fairies')">
-                        <img src="https://image.pollinations.ai/prompt/magical%20forest%20glowing%20mushrooms?nologo=true" alt="Forest">
-                        <div class="card-tag">🌲 Nature</div>
-                    </div>
-                </div>
+                <div class="creations-grid" id="explore-grid"></div>
             </div>
 
             <!-- STEP 8: MY CREATIONS -->
@@ -594,7 +630,11 @@
                     <h5 style="font-size: 11px; color: var(--text-muted); margin-bottom: 4px;">PROMPT</h5>
                     <p id="details-prompt" style="font-size: 13px; font-weight: 500; line-height: 1.4;"></p>
                 </div>
-                <button class="primary-btn" onclick="switchTab('home')" style="font-size: 13px; padding: 12px;">Use Prompt Again</button>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 15px;">
+                    <a id="details-download-btn" href="#" target="_blank" download="adryvo.jpg" class="quick-chip" style="text-align: center; padding: 12px; background: var(--bg-card); color: white; text-decoration: none;">📥 Download</a>
+                    <button class="quick-chip" onclick="useTemplatePrompt(document.getElementById('details-prompt').innerText)" style="padding: 12px; background: var(--bg-card); color: white;">✨ Reuse Prompt</button>
+                </div>
+                <button class="primary-btn" onclick="switchTab('creations')" style="font-size: 13px; padding: 12px;">Back to Creations</button>
             </div>
 
             <!-- STEP 10: TEMPLATES -->
@@ -609,7 +649,7 @@
                         <h4>Instagram Post</h4>
                         <p>High-engagement square aesthetic design</p>
                     </div>
-                    <button class="template-btn" onclick="useTemplatePrompt('High engagement aesthetic Instagram post background, vibrant')">Use</button>
+                    <button class="template-btn" onclick="useTemplatePrompt('High engagement aesthetic Instagram post background, vibrant colors')">Use</button>
                 </div>
 
                 <div class="template-card">
@@ -626,6 +666,14 @@
                         <p>Studio lighting commercial render</p>
                     </div>
                     <button class="template-btn" onclick="useTemplatePrompt('Luxury product commercial advertisement, studio lighting, 8k')">Use</button>
+                </div>
+
+                <div class="template-card">
+                    <div class="template-info">
+                        <h4>Cinematic Wallpaper</h4>
+                        <p>Ultra-wide desktop/mobile background</p>
+                    </div>
+                    <button class="template-btn" onclick="useTemplatePrompt('Epic cinematic movie scene, dramatic lighting, 8k wallpaper')">Use</button>
                 </div>
             </div>
 
@@ -644,7 +692,7 @@
 
                 <div class="profile-stats-row">
                     <div class="stat-box">
-                        <h4 id="stat-images-count">124</h4>
+                        <h4 id="stat-images-count">0</h4>
                         <span>Generated</span>
                     </div>
                     <div class="stat-divider"></div>
@@ -732,7 +780,7 @@
                         <li>Premium styles & models</li>
                         <li>No watermark</li>
                     </ul>
-                    <button class="primary-btn" onclick="alert('Successfully upgraded to Pro!')">Upgrade to Pro</button>
+                    <button class="primary-btn" onclick="alert('Successfully upgraded to Pro Plan!')">Upgrade to Pro</button>
                 </div>
             </div>
 
@@ -743,21 +791,39 @@
                     <p>App preferences and account details.</p>
                 </div>
                 <div class="profile-menu-list">
-                    <div class="profile-menu-item" onclick="alert('Notifications enabled')">
+                    <div class="profile-menu-item">
+                        <div class="menu-item-left">
+                            <div class="menu-icon-box">👤</div>
+                            <div class="menu-item-text">
+                                <h5>Account Email</h5>
+                                <p id="settings-email-display">Not signed in</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="profile-menu-item" onclick="alert('Push notifications are enabled.')">
                         <div class="menu-item-left">
                             <div class="menu-icon-box">🔔</div>
                             <div class="menu-item-text">
                                 <h5>Notifications</h5>
-                                <p>Push notifications for generation status</p>
+                                <p>Alerts for generation completion</p>
                             </div>
                         </div>
                     </div>
-                    <div class="profile-menu-item" onclick="alert('Dark theme active')">
+                    <div class="profile-menu-item" onclick="alert('Dark Navy Theme is active.')">
                         <div class="menu-item-left">
                             <div class="menu-icon-box">🌙</div>
                             <div class="menu-item-text">
-                                <h5>Theme</h5>
-                                <p>Dark futuristic navy</p>
+                                <h5>Theme Mode</h5>
+                                <p>Dark Futuristic Navy</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="profile-menu-item" onclick="alert('Adryvo AI Version 2.4.0 (Production Build)')">
+                        <div class="menu-item-left">
+                            <div class="menu-icon-box">ℹ️</div>
+                            <div class="menu-item-text">
+                                <h5>App Version</h5>
+                                <p>v2.4.0 Stable</p>
                             </div>
                         </div>
                     </div>

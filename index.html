@@ -4,6 +4,77 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Adryvo-AI</title>
+    
+    <!-- Firebase SDK (Modular) -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+        import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
+
+        // Your Firebase Configuration
+        const firebaseConfig = {
+            apiKey: "AIzaSyDVyzcpklnT0hRqTS128nKL",
+            authDomain: "adryvo.firebaseapp.com",
+            projectId: "adryvo",
+            storageBucket: "adryvo.firebasestorage.app",
+            messagingSenderId: "814950964069",
+            appId: "1:814950964069:web:9609bcaecab4f7cdd95f8c",
+            measurementId: "G-MMVMJINQ7J"
+        };
+
+        // Initialize Firebase
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+
+        // Global functions for buttons
+        window.handleSignUp = function() {
+            const email = document.getElementById('signup-email').value;
+            const pass = document.getElementById('signup-pass').value;
+            if(!email || !pass) {
+                alert("Please fill all fields");
+                return;
+            }
+            createUserWithEmailAndPassword(auth, email, pass)
+                .then(() => {
+                    alert("Sign up successful!");
+                    showDashboard();
+                })
+                .catch((error) => {
+                    alert(error.message);
+                });
+        };
+
+        window.handleLogin = function() {
+            const email = document.getElementById('login-email').value;
+            const pass = document.getElementById('login-pass').value;
+            if(!email || !pass) {
+                alert("Please fill all fields");
+                return;
+            }
+            signInWithEmailAndPassword(auth, email, pass)
+                .then(() => {
+                    alert("Login successful!");
+                    showDashboard();
+                })
+                .catch((error) => {
+                    alert(error.message);
+                });
+        };
+
+        window.handleLogout = function() {
+            signOut(auth).then(() => {
+                showHome();
+            }).catch((error) => {
+                alert(error.message);
+            });
+        };
+
+        onAuthStateChanged(auth, (user) => {
+            if (user) {
+                showDashboard();
+            }
+        });
+    </script>
+
     <style>
         * {
             margin: 0;
@@ -185,7 +256,7 @@
             <button class="back-btn" onclick="showHome()">Back</button>
         </div>
 
-        <!-- Dashboard Screen (After Login) -->
+        <!-- Dashboard Screen -->
         <div id="dashboard-screen" style="text-align: center;">
             <h1>Dashboard</h1>
             <p>Welcome to Adryvo-AI! You are successfully logged in.</p>
@@ -193,8 +264,38 @@
         </div>
     </div>
 
-    <!-- Link to external JavaScript file -->
-    <script type="module" src="script.js"></script>
+    <script>
+        const homeScreen = document.getElementById('home-screen');
+        const loginScreen = document.getElementById('login-screen');
+        const signupScreen = document.getElementById('signup-screen');
+        const dashboardScreen = document.getElementById('dashboard-screen');
+
+        function showAuth(type) {
+            homeScreen.style.display = 'none';
+            dashboardScreen.style.display = 'none';
+            if (type === 'login') {
+                loginScreen.style.display = 'block';
+                signupScreen.style.display = 'none';
+            } else {
+                loginScreen.style.display = 'none';
+                signupScreen.style.display = 'block';
+            }
+        }
+
+        function showHome() {
+            homeScreen.style.display = 'block';
+            loginScreen.style.display = 'none';
+            signupScreen.style.display = 'none';
+            dashboardScreen.style.display = 'none';
+        }
+
+        function showDashboard() {
+            homeScreen.style.display = 'none';
+            loginScreen.style.display = 'none';
+            signupScreen.style.display = 'none';
+            dashboardScreen.style.display = 'block';
+        }
+    </script>
 
 </body>
 </html>

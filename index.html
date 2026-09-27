@@ -38,9 +38,10 @@
                 document.getElementById('settings-email-display').innerText = 'Not signed in';
             }
             updateProfileStats();
+            checkProStatus();
         });
 
-        // STEP 1: Splash Screen Handler & Redirect to Login First
+        // Splash Screen Handler
         window.addEventListener('DOMContentLoaded', () => {
             setTimeout(() => {
                 const splash = document.getElementById('view-splash');
@@ -48,7 +49,6 @@
                     splash.style.opacity = '0';
                     setTimeout(() => { 
                         splash.style.display = 'none'; 
-                        // Check if already logged in or force login screen
                         if(auth.currentUser) {
                             switchTab('home');
                         } else {
@@ -90,7 +90,8 @@
 
             if(tabId === 'creations') loadHistoryGallery();
             if(tabId === 'explore') loadExploreGrid();
-            if(tabId === 'profile') updateProfileStats();
+            if(tabId === 'profile') { updateProfileStats(); checkProStatus(); }
+            if(tabId === 'pricing') checkProStatus();
             
             window.scrollTo(0, 0);
         }
@@ -148,6 +149,57 @@
             const userId = currentUser ? currentUser.uid : 'guest';
             let history = JSON.parse(localStorage.getItem(`adryvo_history_${userId}`) || '[]');
             document.getElementById('stat-images-count').innerText = history.length > 0 ? history.length : '0';
+        }
+
+        // UPI PAYMENT MODAL LOGIC (Configured with your details)
+        function openUpiModal() {
+            document.getElementById('upi-modal').style.display = 'flex';
+        }
+
+        function closeUpiModal() {
+            document.getElementById('upi-modal').style.display = 'none';
+        }
+
+        function sendWhatsAppProof() {
+            const userEmail = currentUser ? currentUser.email : 'Guest User';
+            const message = encodeURIComponent(`Hello! I have made the payment of ₹999 for Adryvo Pro Plan. My Account Email is: ${userEmail}. Here is my payment screenshot.`);
+            // Your WhatsApp Number: 7900728170
+            const whatsappNumber = "917900728170"; 
+            window.open(`https://wa.me/${whatsappNumber}?text=${message}`, '_blank');
+        }
+
+        // Developer function to manually activate Pro for testing or after checking payment
+        function activateProPlanAdmin() {
+            const userId = currentUser ? currentUser.uid : 'guest';
+            localStorage.setItem(`adryvo_pro_${userId}`, 'true');
+            alert("Pro Plan Activated Successfully!");
+            checkProStatus();
+            closeUpiModal();
+            switchTab('profile');
+        }
+
+        function checkProStatus() {
+            const userId = currentUser ? currentUser.uid : 'guest';
+            const isPro = localStorage.getItem(`adryvo_pro_${userId}`) === 'true';
+            
+            const profilePlanEl = document.getElementById('profile-plan-text');
+            const pricingActionEl = document.getElementById('pricing-action-btn');
+            
+            if (isPro) {
+                if(profilePlanEl) profilePlanEl.innerText = 'Pro (Active)';
+                if(pricingActionEl) {
+                    pricingActionEl.innerText = 'Pro Plan Active ✓';
+                    pricingActionEl.style.background = 'linear-gradient(135deg, #059669, #10b981)';
+                    pricingActionEl.onclick = () => alert("You are already enjoying Pro benefits!");
+                }
+            } else {
+                if(profilePlanEl) profilePlanEl.innerText = 'Free';
+                if(pricingActionEl) {
+                    pricingActionEl.innerText = 'Upgrade via UPI ($12 / ₹999)';
+                    pricingActionEl.style.background = 'linear-gradient(135deg, #8b5cf6, #3b82f6)';
+                    pricingActionEl.onclick = openUpiModal;
+                }
+            }
         }
 
         // AI Generation Flow
@@ -420,6 +472,14 @@
         .pricing-features { list-style: none; font-size: 12px; color: var(--text-muted); display: flex; flex-direction: column; gap: 6px; margin-bottom: 16px; }
         .pricing-features li::before { content: "✓ "; color: #3b82f6; font-weight: bold; }
 
+        /* UPI Modal Custom Style */
+        .upi-modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.85); z-index: 2000; display: none; align-items: center; justify-content: center; padding: 20px; backdrop-filter: blur(8px); }
+        .upi-modal-box { background: var(--bg-card); border: 1px solid var(--accent-purple); border-radius: 24px; padding: 24px; width: 100%; max-width: 360px; text-align: center; box-shadow: 0 20px 40px rgba(0,0,0,0.8); }
+        .upi-modal-box h3 { font-size: 18px; font-weight: 800; margin-bottom: 6px; color: white; }
+        .upi-modal-box p { font-size: 12px; color: var(--text-muted); margin-bottom: 16px; }
+        .qr-placeholder { width: 180px; height: 180px; background: white; border-radius: 12px; margin: 0 auto 15px auto; display: flex; align-items: center; justify-content: center; padding: 10px; }
+        .qr-placeholder img { width: 100%; height: 100%; object-fit: contain; }
+
         .bottom-nav { position: absolute; bottom: 0; left: 0; right: 0; height: 70px; background: rgba(13, 18, 32, 0.95); backdrop-filter: blur(15px); border-top: 1px solid var(--border-color); display: flex; justify-content: space-around; align-items: center; padding: 0 10px; z-index: 100; }
         .bottom-nav-item { display: flex; flex-direction: column; align-items: center; gap: 3px; color: var(--text-muted); cursor: pointer; font-size: 10px; font-weight: 500; transition: 0.2s; }
         .bottom-nav-item.active { color: var(--primary); text-shadow: 0 0 10px rgba(59, 130, 246, 0.6); }
@@ -438,6 +498,24 @@
 
     <div class="phone-frame">
         
+        <!-- UPI PAYMENT POPUP MODAL -->
+        <div id="upi-modal" class="upi-modal-overlay">
+            <div class="upi-modal-box">
+                <h3>Scan & Pay ₹999 / $12</h3>
+                <p>Scan via GPay, PhonePe, Paytm or any UPI App</p>
+                
+                <!-- Dynamic QR code configured with 9873281168@fam -->
+                <div class="qr-placeholder">
+                    <img src="https://api.qrserver.com/v1/create-qr-code/?size=160x160&data=upi://pay?pa=9873281168@fam&pn=AdryvoAI&am=999&cu=INR" alt="UPI QR">
+                </div>
+
+                <p style="font-size: 11px; color: #a855f7; font-weight: 600; margin-bottom: 12px;">UPI ID: <span style="color:white;">9873281168@fam</span></p>
+
+                <button class="primary-btn" onclick="sendWhatsAppProof()" style="margin-bottom: 8px; font-size: 13px; padding: 12px; background: #25d366;">💬 Send Screenshot on WhatsApp</button>
+                <button class="quick-chip" onclick="closeUpiModal()" style="width: 100%; padding: 10px; background: transparent; color: var(--text-muted);">Cancel</button>
+            </div>
+        </div>
+
         <!-- SPLASH SCREEN -->
         <div id="view-splash">
             <div class="splash-logo">A</div>
@@ -460,7 +538,7 @@
         <!-- SCROLLABLE CONTENT BODY -->
         <div class="content-scroll">
 
-            <!-- LOGIN SCREEN (Default starting screen) -->
+            <!-- LOGIN SCREEN -->
             <div id="view-login" style="display: none;">
                 <div class="auth-container">
                     <div class="splash-logo" style="margin: 0 auto 16px auto; width: 56px; height: 56px; font-size: 28px;">A</div>
@@ -711,7 +789,7 @@
                     </div>
                     <div class="stat-divider"></div>
                     <div class="stat-box">
-                        <h4 style="color:#f59e0b;">Pro</h4>
+                        <h4 id="profile-plan-text" style="color:#f59e0b;">Free</h4>
                         <span>Plan</span>
                     </div>
                 </div>
@@ -789,7 +867,7 @@
                         <li>Premium styles & models</li>
                         <li>No watermark</li>
                     </ul>
-                    <button class="primary-btn" onclick="alert('Successfully upgraded to Pro Plan!')">Upgrade to Pro</button>
+                    <button id="pricing-action-btn" class="primary-btn" onclick="openUpiModal()">Upgrade via UPI</button>
                 </div>
             </div>
 

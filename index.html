@@ -25,6 +25,7 @@
         let currentUser = null;
         let activeGenerationImageUrl = '';
         let activeGenerationPrompt = '';
+        let previousTab = 'home'; // Track previous screen for back button
 
         auth.onAuthStateChanged((user) => {
             currentUser = user;
@@ -51,8 +52,18 @@
             }, 2000);
         });
 
-        // Screen Switcher Router
+        // Screen Switcher Router with Navigation History tracking
         function switchTab(tabId) {
+            // Save current active tab as previous before switching (except for splash/generating)
+            const activeView = document.querySelector('.content-scroll > div:not([style*="display: none"])');
+            if (activeView && tabId !== 'generating' && tabId !== 'splash') {
+                // Find current visible tab id
+                const currentId = activeView.id.replace('view-', '');
+                if (currentId !== tabId && currentId !== 'login' && currentId !== 'signup') {
+                    previousTab = currentId;
+                }
+            }
+
             const views = [
                 'splash', 'login', 'signup', 'home', 'explore', 'creations', 
                 'generating', 'result', 'details', 'templates', 'profile', 'pricing', 'settings'
@@ -84,6 +95,26 @@
             if(tabId === 'profile') updateProfileStats();
             
             window.scrollTo(0, 0);
+        }
+
+        // Global Back Navigation Handler
+        function goBack() {
+            // If on details or result, go back to creations or home
+            const currentVisible = document.querySelector('.content-scroll > div:not([style*="display: none"])');
+            if (!currentVisible) {
+                switchTab('home');
+                return;
+            }
+            const id = currentVisible.id;
+            if (id === 'view-details' || id === 'view-result') {
+                switchTab('creations');
+            } else if (id === 'view-signup') {
+                switchTab('login');
+            } else if (id === 'view-pricing' || id === 'view-settings' || id === 'view-templates' || id === 'view-explore' || id === 'view-creations' || id === 'view-profile') {
+                switchTab('home');
+            } else {
+                switchTab('home');
+            }
         }
 
         function handleGuestLogin() {
@@ -128,7 +159,7 @@
             document.getElementById('stat-images-count').innerText = history.length > 0 ? history.length : '0';
         }
 
-        // STEP 5 & 6: AI Generation Flow with All Options
+        // AI Generation Flow with All Options
         function startAIGeneration() {
             const promptInput = document.getElementById('ai-prompt').value;
             if(!promptInput.trim()) { alert("Please enter a prompt!"); return; }
@@ -136,7 +167,6 @@
             activeGenerationPrompt = promptInput;
             document.getElementById('gen-prompt-text').innerText = `"${promptInput}"`;
             
-            // Switch to Generating Screen (Step 5)
             switchTab('generating');
 
             const model = document.getElementById('opt-model').value;
@@ -168,7 +198,6 @@
                 activeGenerationImageUrl = canvas.toDataURL('image/jpeg', 0.98);
 
                 setTimeout(() => {
-                    // Switch to Result Screen (Step 6)
                     document.getElementById('result-image-view').src = activeGenerationImageUrl;
                     document.getElementById('download-btn-link').href = activeGenerationImageUrl;
                     switchTab('result');
@@ -185,7 +214,6 @@
             const userId = currentUser ? currentUser.uid : 'guest';
             let history = JSON.parse(localStorage.getItem(`adryvo_history_${userId}`) || '[]');
             
-            // Check if already saved
             history.unshift({ 
                 url: activeGenerationImageUrl, 
                 prompt: activeGenerationPrompt, 
@@ -206,7 +234,7 @@
                 return;
             }
 
-            grid.innerHTML = history.map((item, index) => `
+            grid.innerHTML = history.map((item) => `
                 <div class="gallery-item fade-in" onclick="openDetails('${item.url}', '${item.prompt}')">
                     <img src="${item.url}" alt="${item.prompt}">
                     <div class="gallery-info">
@@ -276,7 +304,6 @@
         * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Inter', system-ui, -apple-system, sans-serif; }
         body { background-color: #020408; color: var(--text-main); min-height: 100vh; display: flex; justify-content: center; align-items: center; }
 
-        /* Mobile Frame Container */
         .phone-frame {
             width: 100%;
             max-width: 430px;
@@ -318,6 +345,11 @@
         .pro-badge { background: linear-gradient(135deg, #f59e0b, #d97706); color: white; padding: 5px 12px; border-radius: 20px; font-size: 12px; font-weight: 700; display: flex; align-items: center; gap: 4px; cursor: pointer; }
         .profile-btn { width: 36px; height: 36px; background: #131b2e; border: 1px solid var(--border-color); border-radius: 50%; display: flex; align-items: center; justify-content: center; cursor: pointer; color: var(--text-muted); }
 
+        /* Back Header Component (Jaisa image me hai < ) */
+        .page-header-back { display: flex; align-items: center; gap: 12px; margin-bottom: 15px; }
+        .back-arrow-btn { width: 36px; height: 36px; background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 50%; display: flex; align-items: center; justify-content: center; color: white; font-size: 18px; cursor: pointer; }
+        .page-header-back h2 { font-size: 18px; font-weight: 700; }
+
         /* Scrollable Content Area */
         .content-scroll { flex: 1; overflow-y: auto; padding: 10px 20px 95px 20px; scrollbar-width: none; }
         .content-scroll::-webkit-scrollbar { display: none; }
@@ -327,12 +359,12 @@
         .hero-box h1 span { background: linear-gradient(135deg, #a855f7, #3b82f6, #06b6d4); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
         .hero-box p { color: var(--text-muted); font-size: 13px; line-height: 1.5; }
 
-        /* Splash Screen (Step 1) */
+        /* Splash Screen */
         #view-splash { position: absolute; inset: 0; background: radial-gradient(circle at center, #1e1b4b 0%, #05070f 70%); z-index: 1000; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; transition: opacity 0.4s ease; }
         .splash-logo { width: 72px; height: 72px; background: linear-gradient(135deg, #8b5cf6, #3b82f6); border-radius: 20px; display: flex; align-items: center; justify-content: center; font-size: 38px; font-weight: 900; color: white; box-shadow: 0 0 40px rgba(139, 92, 246, 0.5); margin-bottom: 16px; }
 
-        /* Auth Pages (Step 2) */
-        .auth-container { padding: 30px 0; text-align: center; }
+        /* Auth Pages */
+        .auth-container { padding: 15px 0; text-align: center; }
         .auth-container h2 { font-size: 24px; font-weight: 800; margin-bottom: 6px; }
         .auth-container p { font-size: 13px; color: var(--text-muted); margin-bottom: 25px; }
         .auth-input-group { text-align: left; margin-bottom: 15px; }
@@ -341,7 +373,7 @@
         .social-btn { width: 100%; padding: 13px; background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 12px; color: white; font-size: 14px; font-weight: 600; cursor: pointer; margin-bottom: 12px; display: flex; align-items: center; justify-content: center; gap: 8px; }
         .primary-btn { width: 100%; padding: 14px; background: linear-gradient(135deg, #8b5cf6, #3b82f6); border: none; border-radius: 14px; color: white; font-size: 15px; font-weight: 700; cursor: pointer; box-shadow: 0 8px 25px rgba(59, 130, 246, 0.35); }
 
-        /* Prompt Card & Options (Step 3 & 4) */
+        /* Prompt Card & Options */
         .prompt-card { background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 20px; padding: 14px; margin-bottom: 14px; box-shadow: 0 10px 30px rgba(0,0,0,0.4); }
         .prompt-textarea { width: 100%; background: transparent; border: none; color: white; font-size: 14px; resize: none; height: 75px; outline: none; }
         .prompt-textarea::placeholder { color: #64748b; }
@@ -356,7 +388,6 @@
         .quick-chip { background: var(--bg-card); border: 1px solid var(--border-color); padding: 6px 12px; border-radius: 20px; font-size: 11px; white-space: nowrap; cursor: pointer; color: var(--text-muted); }
         .quick-chip:hover { border-color: var(--primary); color: white; }
 
-        /* Grids & Cards */
         .section-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
         .section-header h3 { font-size: 15px; font-weight: 700; }
         .see-all { color: var(--primary); font-size: 12px; font-weight: 600; cursor: pointer; }
@@ -366,13 +397,11 @@
         .creation-card img { width: 100%; height: 140px; object-fit: cover; display: block; }
         .card-tag { position: absolute; bottom: 8px; left: 8px; background: rgba(0,0,0,0.6); backdrop-filter: blur(6px); padding: 3px 8px; border-radius: 10px; font-size: 10px; color: #e2e8f0; }
 
-        /* Step 10: Templates Cards */
         .template-card { background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 16px; padding: 14px; margin-bottom: 10px; display: flex; justify-content: space-between; align-items: center; }
         .template-info h4 { font-size: 14px; font-weight: 700; color: white; }
         .template-info p { font-size: 11px; color: var(--text-muted); margin-top: 2px; }
         .template-btn { background: rgba(59, 130, 246, 0.15); border: 1px solid var(--primary); color: #93c5fd; padding: 6px 12px; border-radius: 12px; font-size: 11px; font-weight: 600; cursor: pointer; }
 
-        /* Step 11: Profile Screen */
         .profile-header { display: flex; align-items: center; gap: 14px; margin: 15px 0; }
         .profile-avatar { width: 76px; height: 76px; border-radius: 50%; background: linear-gradient(135deg, #a855f7, #3b82f6); padding: 2px; }
         .profile-avatar img { width: 100%; height: 100%; border-radius: 50%; object-fit: cover; background: #131b2e; }
@@ -393,7 +422,6 @@
         .menu-item-text p { font-size: 10px; color: var(--text-muted); }
         .menu-arrow { color: var(--text-muted); font-size: 12px; }
 
-        /* Step 12: Pricing / Pro Plans */
         .pricing-card { background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 18px; padding: 20px; margin-bottom: 14px; text-align: left; position: relative; }
         .pricing-card.popular { border-color: var(--accent-purple); background: linear-gradient(135deg, rgba(30, 27, 75, 0.7), var(--bg-card)); }
         .pricing-card h3 { font-size: 18px; font-weight: 800; margin-bottom: 4px; }
@@ -401,7 +429,6 @@
         .pricing-features { list-style: none; font-size: 12px; color: var(--text-muted); display: flex; flex-direction: column; gap: 6px; margin-bottom: 16px; }
         .pricing-features li::before { content: "✓ "; color: #3b82f6; font-weight: bold; }
 
-        /* Step 14: Fixed Bottom Navigation */
         .bottom-nav { position: absolute; bottom: 0; left: 0; right: 0; height: 70px; background: rgba(13, 18, 32, 0.95); backdrop-filter: blur(15px); border-top: 1px solid var(--border-color); display: flex; justify-content: space-around; align-items: center; padding: 0 10px; z-index: 100; }
         .bottom-nav-item { display: flex; flex-direction: column; align-items: center; gap: 3px; color: var(--text-muted); cursor: pointer; font-size: 10px; font-weight: 500; transition: 0.2s; }
         .bottom-nav-item.active { color: var(--primary); text-shadow: 0 0 10px rgba(59, 130, 246, 0.6); }
@@ -420,7 +447,7 @@
 
     <div class="phone-frame">
         
-        <!-- STEP 1: SPLASH SCREEN -->
+        <!-- SPLASH SCREEN -->
         <div id="view-splash">
             <div class="splash-logo">A</div>
             <h1 style="font-size: 28px; font-weight: 800; color: white; margin-bottom: 6px;">Adryvo</h1>
@@ -442,7 +469,7 @@
         <!-- SCROLLABLE CONTENT BODY -->
         <div class="content-scroll">
 
-            <!-- STEP 2: LOGIN / SIGN UP SCREEN -->
+            <!-- LOGIN SCREEN -->
             <div id="view-login" style="display: none;">
                 <div class="auth-container">
                     <div class="splash-logo" style="margin: 0 auto 16px auto; width: 56px; height: 56px; font-size: 28px;">A</div>
@@ -464,14 +491,16 @@
                     <button class="primary-btn" onclick="handleEmailLogin()" style="margin-bottom: 12px;">Login</button>
                     <button class="social-btn" onclick="switchTab('signup')" style="background:transparent; border:none; color:var(--primary);">Create Account</button>
                     <button class="social-btn" onclick="handleGuestLogin()" style="background: rgba(255,255,255,0.03); margin-top: 10px;">Continue as Guest</button>
-                    
-                    <p style="font-size: 10px; color: var(--text-muted); margin-top: 20px;" onclick="switchTab('settings')">Terms of Service & Privacy Policy</p>
                 </div>
             </div>
 
+            <!-- SIGNUP SCREEN WITH BACK BUTTON -->
             <div id="view-signup" style="display: none;">
-                <div class="auth-container">
+                <div class="page-header-back">
+                    <div class="back-arrow-btn" onclick="goBack()">‹</div>
                     <h2>Create Account</h2>
+                </div>
+                <div class="auth-container" style="padding-top: 0;">
                     <p>Join Adryvo AI to unlock full features.</p>
                     <div class="auth-input-group">
                         <label>Email</label>
@@ -482,11 +511,10 @@
                         <input type="password" id="signup-pass" placeholder="••••••••">
                     </div>
                     <button class="primary-btn" onclick="handleSignUp()">Sign Up</button>
-                    <p style="font-size: 12px; color: var(--text-muted); margin-top: 20px;">Already have an account? <span style="color:var(--primary); cursor:pointer;" onclick="switchTab('login')">Login</span></p>
                 </div>
             </div>
 
-            <!-- STEP 3 & 4: HOME / AI GENERATOR & OPTIONS -->
+            <!-- HOME SCREEN -->
             <div id="view-home">
                 <div class="hero-box">
                     <h1>Turn Your Ideas Into<br><span>Stunning AI Images</span></h1>
@@ -501,7 +529,7 @@
                     </div>
                 </div>
 
-                <!-- Advanced Controls (Step 4) -->
+                <!-- Advanced Controls -->
                 <div class="selectors-grid">
                     <div class="selector-box">
                         <label>🤖 Model</label>
@@ -544,7 +572,6 @@
                     ✨ Generate Image &nbsp;→
                 </button>
 
-                <!-- Featured Creations -->
                 <div class="section-header">
                     <h3>Featured Creations</h3>
                     <span class="see-all" onclick="switchTab('explore')">See All</span>
@@ -562,7 +589,7 @@
                 </div>
             </div>
 
-            <!-- STEP 5: GENERATING SCREEN -->
+            <!-- GENERATING SCREEN -->
             <div id="view-generating" style="display: none; text-align: center; padding: 60px 10px;">
                 <div class="spinner" style="margin-bottom: 25px;"></div>
                 <h2 style="font-size: 20px; font-weight: 700; margin-bottom: 8px;">Creating your image…</h2>
@@ -570,13 +597,12 @@
                 <button class="quick-chip" onclick="switchTab('home')" style="background: rgba(239, 68, 68, 0.1); color: #ef4444; border-color: rgba(239, 68, 68, 0.3);">Cancel Generation</button>
             </div>
 
-            <!-- STEP 6: RESULT SCREEN -->
+            <!-- RESULT SCREEN WITH BACK BUTTON -->
             <div id="view-result" style="display: none;">
-                <div class="hero-box" style="margin-bottom: 12px;">
-                    <h1>Generated Masterpiece</h1>
-                    <p>Your AI generation is ready.</p>
+                <div class="page-header-back">
+                    <div class="back-arrow-btn" onclick="goBack()">‹</div>
+                    <h2>Generation Result</h2>
                 </div>
-
                 <div style="background: #000; border-radius: 16px; overflow: hidden; border: 1px solid rgba(139, 92, 246, 0.4); margin-bottom: 15px;">
                     <img id="result-image-view" src="" alt="Generated AI" style="width: 100%; height: 300px; object-fit: cover; display: block;">
                 </div>
@@ -591,37 +617,35 @@
                 <button class="primary-btn" onclick="switchTab('home')" style="font-size: 13px; padding: 12px;">Create Another</button>
             </div>
 
-            <!-- STEP 7: EXPLORE SCREEN -->
+            <!-- EXPLORE SCREEN WITH BACK BUTTON -->
             <div id="view-explore" style="display: none;">
-                <div class="hero-box" style="margin-bottom: 12px;">
-                    <h1>Explore AI Art</h1>
-                    <p>Discover trending creations from the global community.</p>
+                <div class="page-header-back">
+                    <div class="back-arrow-btn" onclick="goBack()">‹</div>
+                    <h2>Explore AI Art</h2>
                 </div>
-
                 <div class="quick-links-row">
                     <span class="quick-chip" style="background:var(--primary); color:white;" onclick="loadExploreGrid()">Trending</span>
                     <span class="quick-chip" onclick="loadExploreGrid()">Popular</span>
                     <span class="quick-chip" onclick="useTemplatePrompt('Realistic human portrait close up')">Portrait</span>
                     <span class="quick-chip" onclick="useTemplatePrompt('Epic fantasy world floating islands')">Fantasy</span>
-                    <span class="quick-chip" onclick="useTemplatePrompt('Anime cyberpunk aesthetic scene')">Anime</span>
                 </div>
-
                 <div class="creations-grid" id="explore-grid"></div>
             </div>
 
-            <!-- STEP 8: MY CREATIONS -->
+            <!-- MY CREATIONS WITH BACK BUTTON -->
             <div id="view-creations" style="display: none;">
-                <div class="hero-box" style="margin-bottom: 12px;">
-                    <h1>My Creations</h1>
-                    <p>Your saved artwork and generation history.</p>
+                <div class="page-header-back">
+                    <div class="back-arrow-btn" onclick="goBack()">‹</div>
+                    <h2>My Creations</h2>
                 </div>
                 <div class="gallery-grid" id="history-grid"></div>
             </div>
 
-            <!-- STEP 9: IMAGE DETAILS -->
+            <!-- IMAGE DETAILS WITH BACK BUTTON -->
             <div id="view-details" style="display: none;">
-                <div class="hero-box" style="margin-bottom: 12px;">
-                    <h1>Image Details</h1>
+                <div class="page-header-back">
+                    <div class="back-arrow-btn" onclick="goBack()">‹</div>
+                    <h2>Image Details</h2>
                 </div>
                 <div style="background: #000; border-radius: 16px; overflow: hidden; margin-bottom: 15px; border: 1px solid var(--border-color);">
                     <img id="details-img" src="" alt="Details" style="width: 100%; height: 260px; object-fit: cover; display: block;">
@@ -634,14 +658,13 @@
                     <a id="details-download-btn" href="#" target="_blank" download="adryvo.jpg" class="quick-chip" style="text-align: center; padding: 12px; background: var(--bg-card); color: white; text-decoration: none;">📥 Download</a>
                     <button class="quick-chip" onclick="useTemplatePrompt(document.getElementById('details-prompt').innerText)" style="padding: 12px; background: var(--bg-card); color: white;">✨ Reuse Prompt</button>
                 </div>
-                <button class="primary-btn" onclick="switchTab('creations')" style="font-size: 13px; padding: 12px;">Back to Creations</button>
             </div>
 
-            <!-- STEP 10: TEMPLATES -->
+            <!-- TEMPLATES WITH BACK BUTTON -->
             <div id="view-templates" style="display: none;">
-                <div class="hero-box" style="margin-bottom: 12px;">
-                    <h1>AI Templates</h1>
-                    <p>Ready-made prompts for instant creation.</p>
+                <div class="page-header-back">
+                    <div class="back-arrow-btn" onclick="goBack()">‹</div>
+                    <h2>AI Templates</h2>
                 </div>
 
                 <div class="template-card">
@@ -667,19 +690,15 @@
                     </div>
                     <button class="template-btn" onclick="useTemplatePrompt('Luxury product commercial advertisement, studio lighting, 8k')">Use</button>
                 </div>
-
-                <div class="template-card">
-                    <div class="template-info">
-                        <h4>Cinematic Wallpaper</h4>
-                        <p>Ultra-wide desktop/mobile background</p>
-                    </div>
-                    <button class="template-btn" onclick="useTemplatePrompt('Epic cinematic movie scene, dramatic lighting, 8k wallpaper')">Use</button>
-                </div>
             </div>
 
-            <!-- STEP 11: PROFILE SCREEN -->
+            <!-- PROFILE SCREEN WITH BACK BUTTON -->
             <div id="view-profile" style="display: none;">
-                <div class="profile-header">
+                <div class="page-header-back">
+                    <div class="back-arrow-btn" onclick="goBack()">‹</div>
+                    <h2>Profile Dashboard</h2>
+                </div>
+                <div class="profile-header" style="margin-top: 5px;">
                     <div class="profile-avatar">
                         <img src="https://image.pollinations.ai/prompt/handsome%20guy%20portrait%20avatar%20dark%20mood?nologo=true" alt="Avatar">
                     </div>
@@ -754,11 +773,11 @@
                 </div>
             </div>
 
-            <!-- STEP 12: PRO / PRICING -->
+            <!-- PRICING SCREEN WITH BACK BUTTON -->
             <div id="view-pricing" style="display: none;">
-                <div class="hero-box" style="margin-bottom: 15px; text-align: center;">
-                    <h1>Upgrade to Pro</h1>
-                    <p>Unlock the ultimate AI creation potential.</p>
+                <div class="page-header-back">
+                    <div class="back-arrow-btn" onclick="goBack()">‹</div>
+                    <h2>Pro Subscription</h2>
                 </div>
 
                 <div class="pricing-card">
@@ -784,11 +803,11 @@
                 </div>
             </div>
 
-            <!-- STEP 13: SETTINGS -->
+            <!-- SETTINGS SCREEN WITH BACK BUTTON -->
             <div id="view-settings" style="display: none;">
-                <div class="hero-box" style="margin-bottom: 12px;">
-                    <h1>Settings</h1>
-                    <p>App preferences and account details.</p>
+                <div class="page-header-back">
+                    <div class="back-arrow-btn" onclick="goBack()">‹</div>
+                    <h2>App Settings</h2>
                 </div>
                 <div class="profile-menu-list">
                     <div class="profile-menu-item">
@@ -818,7 +837,7 @@
                             </div>
                         </div>
                     </div>
-                    <div class="profile-menu-item" onclick="alert('Adryvo AI Version 2.4.0 (Production Build)')">
+                    <div class="profile-menu-item" onclick="alert('Adryvo AI Version 2.4.0')">
                         <div class="menu-item-left">
                             <div class="menu-icon-box">ℹ️</div>
                             <div class="menu-item-text">
@@ -832,7 +851,7 @@
 
         </div>
 
-        <!-- STEP 14: MOBILE BOTTOM NAVIGATION -->
+        <!-- MOBILE BOTTOM NAVIGATION -->
         <div class="bottom-nav" id="bottom-nav-bar">
             <div class="bottom-nav-item active" id="nav-home" onclick="switchTab('home')">
                 <svg viewBox="0 0 24 24"><path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/></svg>

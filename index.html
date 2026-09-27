@@ -3,14 +3,14 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Adryvo-AI - Dashboard</title>
+    <title>Adryvo AI - Turn Your Ideas Into Stunning Visuals</title>
     
-    <!-- Firebase App & Auth CDN (Compat Version) -->
+    <!-- Firebase SDK (Compat Version) -->
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
 
     <script>
-        // Your Firebase Configuration
+        // Firebase Configuration
         const firebaseConfig = {
             apiKey: "AIzaSyDz8dCn5cjop7gptfMEsSNkAG035D-qkYo",
             authDomain: "adryvo-ai.firebaseapp.com",
@@ -21,312 +21,587 @@
             measurementId: "G-NGXFN0ZH82"
         };
 
-        // Initialize Firebase
         firebase.initializeApp(firebaseConfig);
         const auth = firebase.auth();
 
-        // Functions for Auth
+        let currentUser = null;
+
+        auth.onAuthStateChanged((user) => {
+            currentUser = user;
+            updateNavAuthUI();
+        });
+
+        function updateNavAuthUI() {
+            const authBtnContainer = document.getElementById('nav-auth-btn');
+            if (currentUser) {
+                authBtnContainer.innerHTML = `<button class="btn-primary-sm" onclick="handleLogout()">Logout (${currentUser.email.split('@')[0]})</button>`;
+            } else {
+                authBtnContainer.innerHTML = `<button class="btn-outline-sm" onclick="switchTab('login')">Sign In</button><button class="btn-primary-sm" onclick="switchTab('signup')">Get Started</button>`;
+            }
+        }
+
+        // Navigation Tabs Controller
+        function switchTab(tabId) {
+            const views = ['home', 'explore', 'history', 'pricing', 'login', 'signup', 'dashboard'];
+            views.forEach(v => {
+                const el = document.getElementById(`view-${v}`);
+                if (el) el.style.display = 'none';
+            });
+
+            if (tabId === 'dashboard' || tabId === 'history') {
+                if (!currentUser) {
+                    switchTab('login');
+                    return;
+                }
+            }
+
+            const target = document.getElementById(`view-${tabId}`);
+            if (target) {
+                target.style.display = 'block';
+            }
+            window.scrollTo(0, 0);
+        }
+
+        // Auth Operations
         function handleSignUp() {
             const email = document.getElementById('signup-email').value;
             const pass = document.getElementById('signup-pass').value;
-            if(!email || !pass) {
-                alert("Please fill all fields");
-                return;
-            }
+            if(!email || !pass) { alert("Please fill all fields"); return; }
             auth.createUserWithEmailAndPassword(email, pass)
                 .then(() => {
-                    showDashboard();
+                    alert("Account created successfully!");
+                    switchTab('dashboard');
                 })
-                .catch((error) => {
-                    alert(error.message);
-                });
+                .catch(err => alert(err.message));
         }
 
         function handleLogin() {
             const email = document.getElementById('login-email').value;
             const pass = document.getElementById('login-pass').value;
-            if(!email || !pass) {
-                alert("Please fill all fields");
-                return;
-            }
+            if(!email || !pass) { alert("Please fill all fields"); return; }
             auth.signInWithEmailAndPassword(email, pass)
                 .then(() => {
-                    showDashboard();
+                    switchTab('dashboard');
                 })
-                .catch((error) => {
-                    alert(error.message);
-                });
+                .catch(err => alert(err.message));
         }
 
         function handleLogout() {
             auth.signOut().then(() => {
-                showHome();
-            }).catch((error) => {
-                alert(error.message);
+                switchTab('home');
             });
         }
 
-        auth.onAuthStateChanged((user) => {
-            if (user) {
-                showDashboard();
-            } else {
-                showHome();
-            }
-        });
-
-        // AI Image Generation Mock Function (Can be connected to Pollinations/HuggingFace API later)
-        function generateImage() {
-            const prompt = document.getElementById('ai-prompt').value;
-            const resultArea = document.getElementById('image-result');
-            
-            if(!prompt) {
-                alert("Please enter a prompt to generate an image!");
+        // AI Generation & Local History Storage
+        function generateAIImage() {
+            if(!currentUser) {
+                alert("Please sign in to generate images!");
+                switchTab('login');
                 return;
             }
 
-            resultArea.innerHTML = `<p style="color: #38bdf8;">Generating image for "${prompt}"...</p>`;
-            
-            // Using Pollinations AI free API for real image generation based on text prompt
+            const prompt = document.getElementById('ai-prompt').value;
+            const style = document.getElementById('ai-style').value;
+            const resultBox = document.getElementById('generation-result');
+
+            if(!prompt) {
+                alert("Please enter a prompt!");
+                return;
+            }
+
+            resultBox.innerHTML = `<div class="loading-spinner">Generating masterpiece for "${prompt}"...</div>`;
+
+            const fullPrompt = `${prompt}, ${style} style`;
+            const encoded = encodeURIComponent(fullPrompt);
+            const imageUrl = `https://image.pollinations.ai/prompt/${encoded}`;
+
             setTimeout(() => {
-                const encodedPrompt = encodeURIComponent(prompt);
-                const imageUrl = `https://image.pollinations.ai/prompt/${encodedPrompt}`;
-                
-                resultArea.innerHTML = `
-                    <div style="margin-top: 15px;">
-                        <img src="${imageUrl}" alt="${prompt}" style="width: 100%; max-height: 300px; border-radius: 8px; object-fit: cover;">
-                        <p style="font-size: 12px; color: #94a3b8; margin-top: 5px;">Prompt: ${prompt}</p>
+                resultBox.innerHTML = `
+                    <div class="result-card animate-fade">
+                        <img src="${imageUrl}" alt="${prompt}" style="width:100%; border-radius:12px; max-height:400px; object-fit:cover;">
+                        <p style="margin-top:10px; color:#cbd5e1; font-size:14px;"><strong>Prompt:</strong> ${prompt} (${style})</p>
+                        <button class="btn-primary-sm" style="margin-top:10px;" onclick="saveToHistory('${imageUrl}', '${prompt.replace(/'/g, "")}')">Save to History</button>
                     </div>
                 `;
-            }, 1000);
+            }, 1200);
+        }
+
+        function saveToHistory(url, prompt) {
+            let history = JSON.parse(localStorage.getItem(`adryvo_history_${currentUser.uid}`) || '[]');
+            history.unshift({ url, prompt, date: new Date().toLocaleDateString() });
+            localStorage.setItem(`adryvo_history_${currentUser.uid}`, JSON.stringify(history));
+            alert("Image saved to your History gallery!");
+            loadHistoryGallery();
+        }
+
+        function loadHistoryGallery() {
+            if (!currentUser) return;
+            const grid = document.getElementById('history-grid');
+            let history = JSON.parse(localStorage.getItem(`adryvo_history_${currentUser.uid}`) || '[]');
+            
+            if (history.length === 0) {
+                grid.innerHTML = `<p style="color:#64748b; grid-column: 1/-1; text-align:center; padding:40px;">No creations yet. Start generating in the dashboard!</p>`;
+                return;
+            }
+
+            grid.innerHTML = history.map(item => `
+                <div class="gallery-item">
+                    <img src="${item.url}" alt="${item.prompt}">
+                    <div class="gallery-info">
+                        <p>${item.prompt}</p>
+                        <span>${item.date}</span>
+                    </div>
+                </div>
+            `).join('');
         }
     </script>
 
     <style>
+        :root {
+            --bg-deep: #090d16;
+            --bg-card: #131b2e;
+            --border-color: #1e293b;
+            --primary: #38bdf8;
+            --primary-hover: #0ea5e9;
+            --text-main: #f8fafc;
+            --text-muted: #94a3b8;
+        }
+
         * {
             margin: 0;
             padding: 0;
             box-sizing: border-box;
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
         }
 
         body {
-            background-color: #0f172a;
-            color: #f8fafc;
+            background-color: var(--bg-deep);
+            color: var(--text-main);
             min-height: 100vh;
             display: flex;
             flex-direction: column;
-            justify-content: center;
+        }
+
+        /* Navbar */
+        nav {
+            display: flex;
+            justify-content: space-between;
             align-items: center;
-            padding: 20px;
+            padding: 20px 8%;
+            border-bottom: 1px solid var(--border-color);
+            background: rgba(9, 13, 22, 0.85);
+            backdrop-filter: blur(10px);
+            position: sticky;
+            top: 0;
+            z-index: 100;
         }
 
-        .container {
-            width: 100%;
-            max-width: 450px;
-            background: #1e293b;
-            padding: 30px;
-            border-radius: 16px;
-            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.3);
-        }
-
-        h1 {
-            font-size: 26px;
-            margin-bottom: 10px;
-            color: #38bdf8;
-            text-align: center;
-        }
-
-        p {
-            color: #94a3b8;
-            margin-bottom: 20px;
-            font-size: 14px;
-            text-align: center;
-        }
-
-        .btn {
-            width: 100%;
-            padding: 12px;
-            border: none;
-            border-radius: 8px;
-            font-size: 16px;
-            font-weight: 600;
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-weight: 700;
+            font-size: 20px;
+            color: var(--text-main);
             cursor: pointer;
-            transition: background 0.3s ease;
         }
 
-        .btn-primary {
-            background-color: #38bdf8;
-            color: #0f172a;
-            margin-top: 10px;
+        .logo span { color: var(--primary); }
+
+        .nav-links {
+            display: flex;
+            gap: 30px;
+            list-style: none;
         }
 
-        .btn-primary:hover {
-            background-color: #0ea5e9;
-        }
-
-        .btn-danger {
-            background-color: #ef4444;
-            color: #fff;
-            margin-top: 15px;
-        }
-
-        .btn-danger:hover {
-            background-color: #dc2626;
-        }
-
-        .auth-screen, #dashboard-screen {
-            display: none;
-        }
-
-        .form-group {
-            margin-bottom: 15px;
-            text-align: left;
-        }
-
-        .form-group label {
-            display: block;
-            font-size: 13px;
-            margin-bottom: 5px;
-            color: #cbd5e1;
-        }
-
-        .form-group input, .form-group textarea {
-            width: 100%;
-            padding: 10px;
-            border: 1px solid #475569;
-            background: #0f172a;
-            color: #fff;
-            border-radius: 6px;
+        .nav-links a {
+            color: var(--text-muted);
+            text-decoration: none;
             font-size: 14px;
-        }
-
-        .form-group input:focus, .form-group textarea:focus {
-            outline: none;
-            border-color: #38bdf8;
-        }
-
-        .switch-text {
-            margin-top: 15px;
-            text-align: center;
-            font-size: 13px;
-            color: #94a3b8;
-        }
-
-        .switch-text span {
-            color: #38bdf8;
+            font-weight: 500;
             cursor: pointer;
-            font-weight: 600;
+            transition: color 0.2s;
         }
 
-        .back-btn {
+        .nav-links a:hover { color: var(--primary); }
+
+        .nav-actions {
+            display: flex;
+            gap: 12px;
+            align-items: center;
+        }
+
+        .btn-outline-sm {
             background: transparent;
-            border: none;
-            color: #94a3b8;
-            margin-top: 10px;
-            cursor: pointer;
+            border: 1px solid var(--border-color);
+            color: var(--text-main);
+            padding: 8px 16px;
+            border-radius: 6px;
             font-size: 13px;
+            cursor: pointer;
+            transition: 0.2s;
+        }
+        .btn-outline-sm:hover { border-color: var(--primary); }
+
+        .btn-primary-sm {
+            background: var(--primary);
+            border: none;
+            color: var(--bg-deep);
+            padding: 8px 18px;
+            border-radius: 6px;
+            font-size: 13px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: 0.2s;
+        }
+        .btn-primary-sm:hover { background: var(--primary-hover); }
+
+        /* Main Content Layouts */
+        .main-container {
+            flex: 1;
+            max-width: 1200px;
             width: 100%;
-            text-align: center;
+            margin: 0 auto;
+            padding: 40px 20px;
         }
 
-        .back-btn:hover {
-            color: #fff;
+        /* Hero Section */
+        .hero {
+            display: grid;
+            grid-template-columns: 1.2fr 1fr;
+            gap: 40px;
+            align-items: center;
+            padding: 40px 0 80px 0;
+        }
+
+        .hero-text h1 {
+            font-size: 48px;
+            line-height: 1.15;
+            margin-bottom: 20px;
+        }
+
+        .hero-text h1 span { color: var(--primary); }
+        .hero-text p { color: var(--text-muted); font-size: 16px; margin-bottom: 30px; line-height: 1.6; }
+
+        .hero-btns { display: flex; gap: 15px; }
+
+        .hero-collage {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 12px;
+        }
+        .hero-collage img {
+            width: 100%;
+            height: 110px;
+            object-fit: cover;
+            border-radius: 10px;
+            border: 1px solid var(--border-color);
+        }
+
+        /* Generator Box */
+        .generator-box {
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 16px;
+            padding: 30px;
+            margin-bottom: 60px;
+        }
+
+        .generator-box h3 { font-size: 20px; margin-bottom: 15px; }
+
+        .prompt-input-group {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+
+        .prompt-input-group textarea {
+            flex: 1;
+            background: var(--bg-deep);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 12px;
+            color: white;
+            font-size: 14px;
+            resize: none;
+            height: 50px;
+        }
+
+        .prompt-input-group textarea:focus { outline: none; border-color: var(--primary); }
+
+        .controls-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 15px;
+        }
+
+        .select-ctrl {
+            background: var(--bg-deep);
+            border: 1px solid var(--border-color);
+            color: var(--text-main);
+            padding: 8px 12px;
+            border-radius: 6px;
+            font-size: 13px;
+        }
+
+        /* Gallery Grid */
+        .gallery-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+            gap: 20px;
+        }
+
+        .gallery-item {
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            overflow: hidden;
+            transition: transform 0.2s;
+        }
+        .gallery-item:hover { transform: translateY(-4px); }
+        .gallery-item img { width: 100%; height: 240px; object-fit: cover; }
+        .gallery-info { padding: 15px; }
+        .gallery-info p { font-size: 13px; color: var(--text-main); margin-bottom: 5px; }
+        .gallery-info span { font-size: 11px; color: var(--text-muted); }
+
+        /* Pricing Cards */
+        .pricing-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 25px;
+            margin-top: 30px;
+        }
+
+        .price-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 16px;
+            padding: 35px;
+            text-align: center;
+            position: relative;
+        }
+        .price-card.popular { border-color: var(--primary); }
+        .badge {
+            position: absolute;
+            top: -12px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: var(--primary);
+            color: var(--bg-deep);
+            font-size: 11px;
+            font-weight: 700;
+            padding: 3px 12px;
+            border-radius: 20px;
+        }
+        .price-card h3 { font-size: 22px; margin-bottom: 10px; }
+        .price-card .price { font-size: 36px; font-weight: 700; color: var(--primary); margin: 20px 0; }
+        .price-card ul { list-style: none; text-align: left; margin-bottom: 25px; color: var(--text-muted); font-size: 14px; }
+        .price-card li { margin-bottom: 10px; }
+
+        /* Auth Cards */
+        .auth-card {
+            max-width: 400px;
+            margin: 40px auto;
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 16px;
+            padding: 35px;
+            text-align: center;
+        }
+        .auth-card h2 { margin-bottom: 20px; font-size: 24px; }
+        .form-group { text-align: left; margin-bottom: 15px; }
+        .form-group label { display: block; font-size: 13px; color: var(--text-muted); margin-bottom: 5px; }
+        .form-group input { width: 100%; padding: 10px 14px; background: var(--bg-deep); border: 1px solid var(--border-color); border-radius: 6px; color: white; font-size: 14px; }
+        .form-group input:focus { outline: none; border-color: var(--primary); }
+
+        .loading-spinner {
+            text-align: center;
+            padding: 30px;
+            color: var(--primary);
+            font-weight: 500;
+        }
+
+        /* Footer */
+        footer {
+            border-top: 1px solid var(--border-color);
+            padding: 30px 8%;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            color: var(--text-muted);
+            font-size: 13px;
+            margin-top: auto;
+        }
+
+        @media(max-width: 768px) {
+            .hero { grid-template-columns: 1fr; }
+            .nav-links { display: none; }
+            .hero-text h1 { font-size: 36px; }
         }
     </style>
 </head>
 <body>
 
-    <div class="container">
-        <!-- Home / Welcome Screen -->
-        <div id="home-screen">
-            <h1>Adryvo-AI</h1>
-            <p>Your intelligent AI companion for modern workflows.</p>
-            <button class="btn btn-primary" onclick="showAuth('login')">Get Started</button>
+    <!-- Navigation Bar -->
+    <nav>
+        <div class="logo" onclick="switchTab('home')">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none"><path d="M12 2L2 7L12 12L22 7L12 2Z" fill="#38bdf8"/><path d="M2 17L12 22L22 17" stroke="#38bdf8" stroke-width="2"/><path d="M2 12L12 17L22 12" stroke="#38bdf8" stroke-width="2"/></svg>
+            ADRYVO <span>AI</span>
+        </div>
+        <ul class="nav-links">
+            <li><a onclick="switchTab('home')">Home</a></li>
+            <li><a onclick="switchTab('explore')">Explore</a></li>
+            <li><a onclick="switchTab('history'); loadHistoryGallery();">History</a></li>
+            <li><a onclick="switchTab('pricing')">Pricing</a></li>
+        </ul>
+        <div class="nav-actions" id="nav-auth-btn">
+            <!-- Dynamically populated by auth state -->
+        </div>
+    </nav>
+
+    <!-- VIEWS CONTAINER -->
+    <div class="main-container">
+
+        <!-- 1. HOME VIEW -->
+        <div id="view-home">
+            <section class="hero">
+                <div class="hero-text">
+                    <h1>Turn Your Ideas Into Stunning <span>Visuals</span></h1>
+                    <p>Adryvo AI helps you create professional-quality images from simple text prompts. Fast, easy, and limitless.</p>
+                    <div class="hero-btns">
+                        <button class="btn-primary-sm" style="padding: 12px 24px;" onclick="switchTab('dashboard')">Start Generating →</button>
+                        <button class="btn-outline-sm" style="padding: 12px 24px;" onclick="switchTab('explore')">Explore Gallery</button>
+                    </div>
+                </div>
+                <div class="hero-collage">
+                    <img src="https://image.pollinations.ai/prompt/cyberpunk%20car" alt="AI Art">
+                    <img src="https://image.pollinations.ai/prompt/fantasy%20castle" alt="AI Art">
+                    <img src="https://image.pollinations.ai/prompt/luxurious%20perfume%20bottle" alt="AI Art">
+                    <img src="https://image.pollinations.ai/prompt/cute%20cat" alt="AI Art">
+                    <img src="https://image.pollinations.ai/prompt/neon%20portrait" alt="AI Art">
+                    <img src="https://image.pollinations.ai/prompt/futuristic%20city" alt="AI Art">
+                </div>
+            </section>
         </div>
 
-        <!-- Login Screen -->
-        <div id="login-screen" class="auth-screen">
-            <h1>Welcome Back</h1>
-            <p>Login to access your AI studio.</p>
-            <div class="form-group">
-                <label>Email</label>
-                <input type="email" id="login-email" placeholder="Enter your email">
+        <!-- 2. EXPLORE VIEW -->
+        <div id="view-explore" style="display: none;">
+            <h2 style="margin-bottom: 25px; font-size: 28px;">Explore Community Creations</h2>
+            <div class="gallery-grid">
+                <div class="gallery-item"><img src="https://image.pollinations.ai/prompt/majestic%20lion%20portrait" alt="Art"><div class="gallery-info"><p>Majestic Lion Portrait</p><span>Photorealistic</span></div></div>
+                <div class="gallery-item"><img src="https://image.pollinations.ai/prompt/futuristic%20sci-fi%20city%20skyline" alt="Art"><div class="gallery-info"><p>Sci-Fi City Skyline</p><span>Cinematic</span></div></div>
+                <div class="gallery-item"><img src="https://image.pollinations.ai/prompt/cozy%20wooden%20cabin%20interior" alt="Art"><div class="gallery-info"><p>Cozy Cabin Interior</p><span>3D Render</span></div></div>
+                <div class="gallery-item"><img src="https://image.pollinations.ai/prompt/cyberpunk%20female%20warrior" alt="Art"><div class="gallery-info"><p>Cyberpunk Warrior</p><span>Illustration</span></div></div>
+                <div class="gallery-item"><img src="https://image.pollinations.ai/prompt/red%20sports%20car%20speeding" alt="Art"><div class="gallery-info"><p>Red Sports Car</p><span>Photorealistic</span></div></div>
+                <div class="gallery-item"><img src="https://image.pollinations.ai/prompt/snowy%20mountain%20landscape" alt="Art"><div class="gallery-info"><p>Snowy Mountains</p><span>Cinematic</span></div></div>
             </div>
-            <div class="form-group">
-                <label>Password</label>
-                <input type="password" id="login-pass" placeholder="Enter your password">
-            </div>
-            <button class="btn btn-primary" onclick="handleLogin()">Login</button>
-            <p class="switch-text">Don't have an account? <span onclick="showAuth('signup')">Sign Up</span></p>
-            <button class="back-btn" onclick="showHome()">Back</button>
         </div>
 
-        <!-- Sign Up Screen -->
-        <div id="signup-screen" class="auth-screen">
-            <h1>Create Account</h1>
-            <p>Join Adryvo-AI today.</p>
-            <div class="form-group">
-                <label>Email</label>
-                <input type="email" id="signup-email" placeholder="Enter your email">
+        <!-- 3. DASHBOARD / STUDIO VIEW -->
+        <div id="view-dashboard" style="display: none;">
+            <div class="generator-box">
+                <h3>🎨 AI Image Generator Studio</h3>
+                <p style="color: var(--text-muted); font-size: 13px; margin-bottom: 15px;">Describe what you want to create and let AI do the magic.</p>
+                <div class="prompt-input-group">
+                    <textarea id="ai-prompt" placeholder="e.g., A futuristic sports car racing through a neon cyberpunk city at night..."></textarea>
+                </div>
+                <div class="controls-row">
+                    <select id="ai-style" class="select-ctrl">
+                        <option value="photorealistic">Photorealistic</option>
+                        <option value="cinematic lighting">Cinematic</option>
+                        <option value="3d render">3D Render</option>
+                        <option value="anime illustration">Illustration</option>
+                    </select>
+                    <button class="btn-primary-sm" style="padding: 10px 25px;" onclick="generateAIImage()">✨ Generate Image</button>
+                </div>
             </div>
-            <div class="form-group">
-                <label>Password</label>
-                <input type="password" id="signup-pass" placeholder="Create a password">
-            </div>
-            <button class="btn btn-primary" onclick="handleSignUp()">Sign Up</button>
-            <p class="switch-text">Already have an account? <span onclick="showAuth('login')">Login</span></p>
-            <button class="back-btn" onclick="showHome()">Back</button>
+            <div id="generation-result"></div>
         </div>
 
-        <!-- Dashboard / AI Studio Screen -->
-        <div id="dashboard-screen" class="auth-screen">
-            <h1>AI Studio</h1>
-            <p>Generate high-quality AI images instantly.</p>
-            
-            <div class="form-group">
-                <label>Image Prompt</label>
-                <textarea id="ai-prompt" rows="3" placeholder="e.g., Futuristic cyberpunk city at sunset..."></textarea>
+        <!-- 4. HISTORY VIEW -->
+        <div id="view-history" style="display: none;">
+            <h2 style="margin-bottom: 25px; font-size: 28px;">My Personal Creations</h2>
+            <div class="gallery-grid" id="history-grid">
+                <!-- Loaded dynamically from LocalStorage -->
             </div>
-            <button class="btn btn-primary" onclick="generateImage()">Generate Image</button>
-
-            <div id="image-result" style="text-align: center; margin-top: 15px;"></div>
-
-            <button class="btn btn-danger" onclick="handleLogout()">Logout</button>
         </div>
+
+        <!-- 5. PRICING VIEW -->
+        <div id="view-pricing" style="display: none;">
+            <div style="text-align: center; margin-bottom: 40px;">
+                <h2 style="font-size: 32px; margin-bottom: 10px;">Simple, Transparent Pricing</h2>
+                <p style="color: var(--text-muted);">Choose the plan that fits your creative workflow.</p>
+            </div>
+            <div class="pricing-grid">
+                <div class="price-card">
+                    <h3>Free</h3>
+                    <div class="price">$0<span>/month</span></div>
+                    <ul>
+                        <li>✓ 10 generations / day</li>
+                        <li>✓ Standard quality</li>
+                        <li>✓ Basic styles</li>
+                    </ul>
+                    <button class="btn-outline-sm" style="width: 100%;" onclick="switchTab('signup')">Get Started</button>
+                </div>
+                <div class="price-card popular">
+                    <div class="badge">Most Popular</div>
+                    <h3>Pro</h3>
+                    <div class="price">$9<span>/month</span></div>
+                    <ul>
+                        <li>✓ 100 generations / month</li>
+                        <li>✓ HD quality output</li>
+                        <li>✓ All artistic styles</li>
+                        <li>✓ Priority queue</li>
+                    </ul>
+                    <button class="btn-primary-sm" style="width: 100%;" onclick="switchTab('signup')">Upgrade to Pro</button>
+                </div>
+                <div class="price-card">
+                    <h3>Business</h3>
+                    <div class="price">$29<span>/month</span></div>
+                    <ul>
+                        <li>✓ Unlimited generations</li>
+                        <li>✓ Highest quality</li>
+                        <li>✓ Commercial license</li>
+                        <li>✓ Dedicated support</li>
+                    </ul>
+                    <button class="btn-outline-sm" style="width: 100%;" onclick="switchTab('signup')">Contact Sales</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- 6. LOGIN VIEW -->
+        <div id="view-login" style="display: none;">
+            <div class="auth-card">
+                <h2>Welcome Back</h2>
+                <div class="form-group"><label>Email</label><input type="email" id="login-email" placeholder="name@example.com"></div>
+                <div class="form-group"><label>Password</label><input type="password" id="login-pass" placeholder="••••••••"></div>
+                <button class="btn-primary-sm" style="width: 100%; padding: 12px; margin-top: 10px;" onclick="handleLogin()">Sign In</button>
+                <p style="margin-top: 20px; font-size: 13px; color: var(--text-muted);">Don't have an account? <span style="color: var(--primary); cursor: pointer;" onclick="switchTab('signup')">Sign Up</span></p>
+                <button class="btn-outline-sm" style="width: 100%; margin-top: 15px;" onclick="switchTab('home')">← Back to Home</button>
+            </div>
+        </div>
+
+        <!-- 7. SIGNUP VIEW -->
+        <div id="view-signup" style="display: none;">
+            <div class="auth-card">
+                <h2>Create Account</h2>
+                <div class="form-group"><label>Email</label><input type="email" id="signup-email" placeholder="name@example.com"></div>
+                <div class="form-group"><label>Password</label><input type="password" id="signup-pass" placeholder="••••••••"></div>
+                <button class="btn-primary-sm" style="width: 100%; padding: 12px; margin-top: 10px;" onclick="handleSignUp()">Create Account</button>
+                <p style="margin-top: 20px; font-size: 13px; color: var(--text-muted);">Already have an account? <span style="color: var(--primary); cursor: pointer;" onclick="switchTab('login')">Sign In</span></p>
+                <button class="btn-outline-sm" style="width: 100%; margin-top: 15px;" onclick="switchTab('home')">← Back to Home</button>
+            </div>
+        </div>
+
     </div>
 
-    <script>
-        const homeScreen = document.getElementById('home-screen');
-        const loginScreen = document.getElementById('login-screen');
-        const signupScreen = document.getElementById('signup-screen');
-        const dashboardScreen = document.getElementById('dashboard-screen');
-
-        function showAuth(type) {
-            homeScreen.style.display = 'none';
-            loginScreen.style.display = 'none';
-            signupScreen.style.display = 'none';
-            dashboardScreen.style.display = 'none';
-            if (type === 'login') {
-                loginScreen.style.display = 'block';
-            } else {
-                signupScreen.style.display = 'block';
-            }
-        }
-
-        function showHome() {
-            homeScreen.style.display = 'block';
-            loginScreen.style.display = 'none';
-            signupScreen.style.display = 'none';
-            dashboardScreen.style.display = 'none';
-        }
-
-        function showDashboard() {
-            homeScreen.style.display = 'none';
-            loginScreen.style.display = 'none';
-            signupScreen.style.display = 'none';
-            dashboardScreen.style.display = 'block';
-        }
-    </script>
+    <!-- Footer -->
+    <footer>
+        <p>© 2026 Adryvo AI. All rights reserved.</p>
+        <p>Imagine it. Generate it.</p>
+    </footer>
 
 </body>
 </html>

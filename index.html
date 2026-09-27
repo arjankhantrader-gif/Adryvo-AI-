@@ -32,8 +32,6 @@
                 document.getElementById('profile-email').innerText = user.email;
                 document.getElementById('profile-name').innerText = user.displayName || user.email.split('@')[0];
                 document.getElementById('settings-email-display').innerText = user.email;
-                // Hide Login/Signup from Profile Menu when logged in
-                // Optional: You might need to add IDs to menu items to toggle them
             } else {
                 document.getElementById('profile-email').innerText = 'Not signed in';
                 document.getElementById('profile-name').innerText = 'Guest User';
@@ -42,7 +40,7 @@
             updateProfileStats();
         });
 
-        // STEP 1: Splash Screen Handler & Redirect to Login
+        // STEP 1: Splash Screen Handler & Redirect to Login First
         window.addEventListener('DOMContentLoaded', () => {
             setTimeout(() => {
                 const splash = document.getElementById('view-splash');
@@ -50,8 +48,12 @@
                     splash.style.opacity = '0';
                     setTimeout(() => { 
                         splash.style.display = 'none'; 
-                        // Force redirect to Login Screen first!
-                        switchTab('login');
+                        // Check if already logged in or force login screen
+                        if(auth.currentUser) {
+                            switchTab('home');
+                        } else {
+                            switchTab('login');
+                        }
                     }, 400);
                 }
             }, 2000);
@@ -68,11 +70,10 @@
                 if (el) el.style.display = 'none';
             });
 
-            // Update bottom nav state (Step 14)
+            // Update bottom nav state
             const navTabs = ['home', 'explore', 'creations', 'profile'];
             document.querySelectorAll('.bottom-nav-item').forEach(item => item.classList.remove('active'));
             
-            // Only show nav tabs if user is NOT on login/signup
             if (navTabs.includes(tabId)) {
                 document.getElementById('bottom-nav-bar').style.display = 'flex';
                 const activeNav = document.getElementById(`nav-${tabId}`);
@@ -106,7 +107,7 @@
         }
 
         function handleGuestLogin() {
-            alert("Continuing as Guest. Some features might be limited.");
+            alert("Continuing as Guest.");
             switchTab('home');
         }
 
@@ -132,7 +133,7 @@
             const pass = document.getElementById('signup-pass').value;
             if(!email || !pass) { alert("Please enter details"); return; }
             auth.createUserWithEmailAndPassword(email, pass)
-                .then(() => { alert("Account created and logged in successfully!"); switchTab('home'); })
+                .then(() => { alert("Account created successfully!"); switchTab('home'); })
                 .catch(err => alert(err.message));
         }
 
@@ -149,7 +150,7 @@
             document.getElementById('stat-images-count').innerText = history.length > 0 ? history.length : '0';
         }
 
-        // AI Generation Flow with All Options
+        // AI Generation Flow
         function startAIGeneration() {
             const promptInput = document.getElementById('ai-prompt').value;
             if(!promptInput.trim()) { alert("Please enter a prompt!"); return; }
@@ -428,4 +429,439 @@
         .gallery-item { background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 14px; overflow: hidden; cursor: pointer; }
         .gallery-item img { width: 100%; height: 200px; object-fit: cover; }
         .gallery-info { padding: 10px; }
-        .gallery-info p { font-size: 12px; font-weight: 600
+        .gallery-info p { font-size: 12px; font-weight: 600; margin-bottom: 2px; }
+        .gallery-info span { font-size: 10px; color: var(--text-muted); }
+        .empty-state { text-align: center; padding: 40px; color: var(--text-muted); font-size: 12px; }
+    </style>
+</head>
+<body>
+
+    <div class="phone-frame">
+        
+        <!-- SPLASH SCREEN -->
+        <div id="view-splash">
+            <div class="splash-logo">A</div>
+            <h1 style="font-size: 28px; font-weight: 800; color: white; margin-bottom: 6px;">Adryvo</h1>
+            <p style="color: var(--text-muted); font-size: 13px;">Create Beyond Imagination</p>
+        </div>
+
+        <!-- TOP BAR HEADER -->
+        <div class="top-bar">
+            <div class="logo-area" onclick="switchTab('home')">
+                <div class="logo-icon">A</div>
+                Adryvo
+            </div>
+            <div class="top-actions">
+                <div class="pro-badge" onclick="switchTab('pricing')">👑 Pro</div>
+                <div class="profile-btn" onclick="switchTab('profile')">⚙️</div>
+            </div>
+        </div>
+
+        <!-- SCROLLABLE CONTENT BODY -->
+        <div class="content-scroll">
+
+            <!-- LOGIN SCREEN (Default starting screen) -->
+            <div id="view-login" style="display: none;">
+                <div class="auth-container">
+                    <div class="splash-logo" style="margin: 0 auto 16px auto; width: 56px; height: 56px; font-size: 28px;">A</div>
+                    <h2>Welcome Back</h2>
+                    <p>Create stunning images with AI</p>
+                    
+                    <button class="social-btn" onclick="handleGoogleLogin()">🌐 Continue with Google</button>
+                    <div style="margin: 15px 0; color: var(--text-muted); font-size: 12px;">or with email</div>
+
+                    <div class="auth-input-group">
+                        <label>Email Address</label>
+                        <input type="email" id="login-email" placeholder="name@example.com">
+                    </div>
+                    <div class="auth-input-group">
+                        <label>Password</label>
+                        <input type="password" id="login-pass" placeholder="••••••••">
+                    </div>
+
+                    <button class="primary-btn" onclick="handleEmailLogin()" style="margin-bottom: 12px;">Login</button>
+                    <button class="social-btn" onclick="switchTab('signup')" style="background:transparent; border:none; color:var(--primary);">Create Account</button>
+                    <button class="social-btn" onclick="handleGuestLogin()" style="background: rgba(255,255,255,0.03); margin-top: 10px;">Continue as Guest</button>
+                </div>
+            </div>
+
+            <!-- SIGNUP SCREEN -->
+            <div id="view-signup" style="display: none;">
+                <div class="page-header-back">
+                    <div class="back-arrow-btn" onclick="goBack()">‹</div>
+                    <h2>Create Account</h2>
+                </div>
+                <div class="auth-container" style="padding-top: 0;">
+                    <p>Join Adryvo AI to unlock full features.</p>
+                    <div class="auth-input-group">
+                        <label>Email</label>
+                        <input type="email" id="signup-email" placeholder="name@example.com">
+                    </div>
+                    <div class="auth-input-group">
+                        <label>Password</label>
+                        <input type="password" id="signup-pass" placeholder="••••••••">
+                    </div>
+                    <button class="primary-btn" onclick="handleSignUp()">Sign Up</button>
+                </div>
+            </div>
+
+            <!-- HOME SCREEN -->
+            <div id="view-home" style="display: none;">
+                <div class="hero-box">
+                    <h1>Turn Your Ideas Into<br><span>Stunning AI Images</span></h1>
+                    <p>Describe what you want, and AI will bring your imagination to life.</p>
+                </div>
+
+                <div class="prompt-card">
+                    <textarea id="ai-prompt" class="prompt-textarea" placeholder="What do you want to create? e.g. A futuristic city at sunset, cinematic style"></textarea>
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 8px;">
+                        <button class="quick-chip" onclick="switchTab('templates')">✨ Templates</button>
+                        <span style="font-size: 14px; color: #64748b;">🖼️</span>
+                    </div>
+                </div>
+
+                <div class="selectors-grid">
+                    <div class="selector-box">
+                        <label>🤖 Model</label>
+                        <select id="opt-model">
+                            <option value="realistic">Realistic</option>
+                            <option value="artistic">Artistic</option>
+                            <option value="anime">Anime</option>
+                            <option value="cinematic">Cinematic</option>
+                        </select>
+                    </div>
+                    <div class="selector-box">
+                        <label>🎨 Style</label>
+                        <select id="opt-style">
+                            <option value="realistic">Realistic</option>
+                            <option value="3d">3D Render</option>
+                            <option value="illustration">Illustration</option>
+                            <option value="fantasy">Fantasy</option>
+                        </select>
+                    </div>
+                    <div class="selector-box">
+                        <label>📐 Aspect Ratio</label>
+                        <select id="opt-aspect">
+                            <option value="1:1">1:1 Square</option>
+                            <option value="16:9">16:9 Wide</option>
+                            <option value="9:16">9:16 Story</option>
+                            <option value="4:5">4:5 Portrait</option>
+                        </select>
+                    </div>
+                    <div class="selector-box">
+                        <label>✨ Quality</label>
+                        <select id="opt-quality">
+                            <option value="standard">Standard</option>
+                            <option value="high">High</option>
+                            <option value="ultra">Ultra 4K</option>
+                        </select>
+                    </div>
+                </div>
+
+                <button class="primary-btn" onclick="startAIGeneration()" style="margin-bottom: 20px;">
+                    ✨ Generate Image &nbsp;→
+                </button>
+
+                <div class="section-header">
+                    <h3>Featured Creations</h3>
+                    <span class="see-all" onclick="switchTab('explore')">See All</span>
+                </div>
+
+                <div class="creations-grid">
+                    <div class="creation-card" onclick="useTemplatePrompt('A serene mountain landscape with a crystal clear lake at sunset')">
+                        <img src="https://image.pollinations.ai/prompt/a%20serene%20mountain%20landscape%20lake%20sunset?nologo=true" alt="Landscape">
+                        <div class="card-tag">🌄 Landscape</div>
+                    </div>
+                    <div class="creation-card" onclick="useTemplatePrompt('Cyberpunk female portrait with neon lighting, highly detailed')">
+                        <img src="https://image.pollinations.ai/prompt/cyberpunk%20female%20portrait%20neon%20lighting?nologo=true" alt="Portrait">
+                        <div class="card-tag">👤 Portrait</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- GENERATING SCREEN -->
+            <div id="view-generating" style="display: none; text-align: center; padding: 60px 10px;">
+                <div class="spinner" style="margin-bottom: 25px;"></div>
+                <h2 style="font-size: 20px; font-weight: 700; margin-bottom: 8px;">Creating your image…</h2>
+                <p id="gen-prompt-text" style="color: var(--text-muted); font-size: 13px; max-width: 280px; margin: 0 auto 30px auto;"></p>
+                <button class="quick-chip" onclick="switchTab('home')" style="background: rgba(239, 68, 68, 0.1); color: #ef4444; border-color: rgba(239, 68, 68, 0.3);">Cancel Generation</button>
+            </div>
+
+            <!-- RESULT SCREEN -->
+            <div id="view-result" style="display: none;">
+                <div class="page-header-back">
+                    <div class="back-arrow-btn" onclick="goBack()">‹</div>
+                    <h2>Generation Result</h2>
+                </div>
+                <div style="background: #000; border-radius: 16px; overflow: hidden; border: 1px solid rgba(139, 92, 246, 0.4); margin-bottom: 15px;">
+                    <img id="result-image-view" src="" alt="Generated AI" style="width: 100%; height: 300px; object-fit: cover; display: block;">
+                </div>
+
+                <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; margin-bottom: 15px;">
+                    <a id="download-btn-link" href="#" target="_blank" download="adryvo.jpg" class="quick-chip" style="text-align: center; padding: 12px; background: var(--bg-card); color: white; text-decoration: none;">📥 Download</a>
+                    <button class="quick-chip" onclick="saveCurrentCreation()" style="padding: 12px; background: var(--bg-card); color: white;">💾 Save to Gallery</button>
+                    <button class="quick-chip" onclick="shareImage()" style="padding: 12px; background: var(--bg-card); color: white;">🔗 Share</button>
+                    <button class="quick-chip" onclick="startAIGeneration()" style="padding: 12px; background: var(--bg-card); color: white;">🔄 Regenerate</button>
+                </div>
+
+                <button class="primary-btn" onclick="switchTab('home')" style="font-size: 13px; padding: 12px;">Create Another</button>
+            </div>
+
+            <!-- EXPLORE SCREEN -->
+            <div id="view-explore" style="display: none;">
+                <div class="page-header-back">
+                    <div class="back-arrow-btn" onclick="goBack()">‹</div>
+                    <h2>Explore AI Art</h2>
+                </div>
+                <div class="quick-links-row">
+                    <span class="quick-chip" style="background:var(--primary); color:white;" onclick="loadExploreGrid()">Trending</span>
+                    <span class="quick-chip" onclick="loadExploreGrid()">Popular</span>
+                    <span class="quick-chip" onclick="useTemplatePrompt('Realistic human portrait close up')">Portrait</span>
+                    <span class="quick-chip" onclick="useTemplatePrompt('Epic fantasy world floating islands')">Fantasy</span>
+                </div>
+                <div class="creations-grid" id="explore-grid"></div>
+            </div>
+
+            <!-- MY CREATIONS -->
+            <div id="view-creations" style="display: none;">
+                <div class="page-header-back">
+                    <div class="back-arrow-btn" onclick="goBack()">‹</div>
+                    <h2>My Creations</h2>
+                </div>
+                <div class="gallery-grid" id="history-grid"></div>
+            </div>
+
+            <!-- IMAGE DETAILS -->
+            <div id="view-details" style="display: none;">
+                <div class="page-header-back">
+                    <div class="back-arrow-btn" onclick="goBack()">‹</div>
+                    <h2>Image Details</h2>
+                </div>
+                <div style="background: #000; border-radius: 16px; overflow: hidden; margin-bottom: 15px; border: 1px solid var(--border-color);">
+                    <img id="details-img" src="" alt="Details" style="width: 100%; height: 260px; object-fit: cover; display: block;">
+                </div>
+                <div style="background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 14px; padding: 14px; margin-bottom: 15px;">
+                    <h5 style="font-size: 11px; color: var(--text-muted); margin-bottom: 4px;">PROMPT</h5>
+                    <p id="details-prompt" style="font-size: 13px; font-weight: 500; line-height: 1.4;"></p>
+                </div>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 15px;">
+                    <a id="details-download-btn" href="#" target="_blank" download="adryvo.jpg" class="quick-chip" style="text-align: center; padding: 12px; background: var(--bg-card); color: white; text-decoration: none;">📥 Download</a>
+                    <button class="quick-chip" onclick="useTemplatePrompt(document.getElementById('details-prompt').innerText)" style="padding: 12px; background: var(--bg-card); color: white;">✨ Reuse Prompt</button>
+                </div>
+            </div>
+
+            <!-- TEMPLATES -->
+            <div id="view-templates" style="display: none;">
+                <div class="page-header-back">
+                    <div class="back-arrow-btn" onclick="goBack()">‹</div>
+                    <h2>AI Templates</h2>
+                </div>
+
+                <div class="template-card">
+                    <div class="template-info">
+                        <h4>Instagram Post</h4>
+                        <p>High-engagement square aesthetic design</p>
+                    </div>
+                    <button class="template-btn" onclick="useTemplatePrompt('High engagement aesthetic Instagram post background, vibrant colors')">Use</button>
+                </div>
+
+                <div class="template-card">
+                    <div class="template-info">
+                        <h4>YouTube Thumbnail</h4>
+                        <p>Click-worthy striking color contrast</p>
+                    </div>
+                    <button class="template-btn" onclick="useTemplatePrompt('Stunning click-worthy YouTube thumbnail concept, dramatic lighting')">Use</button>
+                </div>
+
+                <div class="template-card">
+                    <div class="template-info">
+                        <h4>Product Advertisement</h4>
+                        <p>Studio lighting commercial render</p>
+                    </div>
+                    <button class="template-btn" onclick="useTemplatePrompt('Luxury product commercial advertisement, studio lighting, 8k')">Use</button>
+                </div>
+            </div>
+
+            <!-- PROFILE SCREEN -->
+            <div id="view-profile" style="display: none;">
+                <div class="page-header-back">
+                    <div class="back-arrow-btn" onclick="goBack()">‹</div>
+                    <h2>Profile Dashboard</h2>
+                </div>
+                <div class="profile-header" style="margin-top: 5px;">
+                    <div class="profile-avatar">
+                        <img src="https://image.pollinations.ai/prompt/handsome%20guy%20portrait%20avatar%20dark%20mood?nologo=true" alt="Avatar">
+                    </div>
+                    <div class="profile-user-info">
+                        <h2 id="profile-name">Alex Carter</h2>
+                        <p id="profile-email">alex.carter@gmail.com</p>
+                        <div class="profile-bio">Creating stunning visuals with AI.</div>
+                    </div>
+                </div>
+
+                <div class="profile-stats-row">
+                    <div class="stat-box">
+                        <h4 id="stat-images-count">0</h4>
+                        <span>Generated</span>
+                    </div>
+                    <div class="stat-divider"></div>
+                    <div class="stat-box">
+                        <h4>12</h4>
+                        <span>Collections</span>
+                    </div>
+                    <div class="stat-divider"></div>
+                    <div class="stat-box">
+                        <h4 style="color:#f59e0b;">Pro</h4>
+                        <span>Plan</span>
+                    </div>
+                </div>
+
+                <div class="profile-menu-list">
+                    <div class="profile-menu-item" onclick="switchTab('creations')">
+                        <div class="menu-item-left">
+                            <div class="menu-icon-box">🖼️</div>
+                            <div class="menu-item-text">
+                                <h5>My Creations</h5>
+                                <p>View all your generated images</p>
+                            </div>
+                        </div>
+                        <div class="menu-arrow">›</div>
+                    </div>
+
+                    <div class="profile-menu-item" onclick="switchTab('pricing')">
+                        <div class="menu-item-left">
+                            <div class="menu-icon-box">👑</div>
+                            <div class="menu-item-text">
+                                <h5>Subscription Plan</h5>
+                                <p>Manage Pro features</p>
+                            </div>
+                        </div>
+                        <div class="menu-arrow">›</div>
+                    </div>
+
+                    <div class="profile-menu-item" onclick="switchTab('settings')">
+                        <div class="menu-item-left">
+                            <div class="menu-icon-box">⚙️</div>
+                            <div class="menu-item-text">
+                                <h5>Settings</h5>
+                                <p>Preferences, notifications, theme</p>
+                            </div>
+                        </div>
+                        <div class="menu-arrow">›</div>
+                    </div>
+
+                    <div class="profile-menu-item" onclick="handleLogout()" style="border-color: rgba(239, 68, 68, 0.3);">
+                        <div class="menu-item-left">
+                            <div class="menu-icon-box" style="background: rgba(239, 68, 68, 0.1); color: #ef4444;">🚪</div>
+                            <div class="menu-item-text">
+                                <h5 style="color: #ef4444;">Logout</h5>
+                                <p>Sign out from your account</p>
+                            </div>
+                        </div>
+                        <div class="menu-arrow">›</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- PRICING SCREEN -->
+            <div id="view-pricing" style="display: none;">
+                <div class="page-header-back">
+                    <div class="back-arrow-btn" onclick="goBack()">‹</div>
+                    <h2>Pro Subscription</h2>
+                </div>
+
+                <div class="pricing-card">
+                    <h3>Free Plan</h3>
+                    <div class="price">$0</div>
+                    <ul class="pricing-features">
+                        <li>Limited generations</li>
+                        <li>Standard quality</li>
+                    </ul>
+                    <button class="quick-chip" style="width:100%; padding: 10px; background: transparent; color: white;">Current Plan</button>
+                </div>
+
+                <div class="pricing-card popular">
+                    <h3>Pro Plan</h3>
+                    <div class="price">$12<span style="font-size:12px; color:var(--text-muted)">/mo</span></div>
+                    <ul class="pricing-features">
+                        <li>Unlimited fast generations</li>
+                        <li>High-quality 4K images</li>
+                        <li>Premium styles & models</li>
+                        <li>No watermark</li>
+                    </ul>
+                    <button class="primary-btn" onclick="alert('Successfully upgraded to Pro Plan!')">Upgrade to Pro</button>
+                </div>
+            </div>
+
+            <!-- SETTINGS SCREEN -->
+            <div id="view-settings" style="display: none;">
+                <div class="page-header-back">
+                    <div class="back-arrow-btn" onclick="goBack()">‹</div>
+                    <h2>App Settings</h2>
+                </div>
+                <div class="profile-menu-list">
+                    <div class="profile-menu-item">
+                        <div class="menu-item-left">
+                            <div class="menu-icon-box">👤</div>
+                            <div class="menu-item-text">
+                                <h5>Account Email</h5>
+                                <p id="settings-email-display">Not signed in</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="profile-menu-item" onclick="alert('Push notifications are enabled.')">
+                        <div class="menu-item-left">
+                            <div class="menu-icon-box">🔔</div>
+                            <div class="menu-item-text">
+                                <h5>Notifications</h5>
+                                <p>Alerts for generation completion</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="profile-menu-item" onclick="alert('Dark Navy Theme is active.')">
+                        <div class="menu-item-left">
+                            <div class="menu-icon-box">🌙</div>
+                            <div class="menu-item-text">
+                                <h5>Theme Mode</h5>
+                                <p>Dark Futuristic Navy</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="profile-menu-item" onclick="alert('Adryvo AI Version 2.4.0')">
+                        <div class="menu-item-left">
+                            <div class="menu-icon-box">ℹ️</div>
+                            <div class="menu-item-text">
+                                <h5>App Version</h5>
+                                <p>v2.4.0 Stable</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+
+        <!-- MOBILE BOTTOM NAVIGATION -->
+        <div class="bottom-nav" id="bottom-nav-bar" style="display: none;">
+            <div class="bottom-nav-item active" id="nav-home" onclick="switchTab('home')">
+                <svg viewBox="0 0 24 24"><path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/></svg>
+                Home
+            </div>
+            <div class="bottom-nav-item" id="nav-explore" onclick="switchTab('explore')">
+                <svg viewBox="0 0 24 24"><path d="M12 10.9c-.61 0-1.1.49-1.1 1.1s.49 1.1 1.1 1.1c.61 0 1.1-.49 1.1-1.1s-.49-1.1-1.1-1.1zM12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm2.19 12.19L6 18l3.81-8.19L18 6l-3.81 8.19z"/></svg>
+                Explore
+            </div>
+            <div class="bottom-nav-item" id="nav-creations" onclick="switchTab('creations')">
+                <svg viewBox="0 0 24 24"><path d="M21 19V5c0-1.1-.9-2-2-2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2zM8.5 13.5l2.5 3.01L14.5 12l4.5 6H5l3.5-4.5z"/></svg>
+                Creations
+            </div>
+            <div class="bottom-nav-item" id="nav-profile" onclick="switchTab('profile')">
+                <svg viewBox="0 0 24 24"><path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/></svg>
+                Profile
+            </div>
+        </div>
+
+    </div>
+
+</body>
+</html>

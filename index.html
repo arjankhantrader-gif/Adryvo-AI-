@@ -11,12 +11,13 @@
 
         // Your web app's Firebase configuration
         const firebaseConfig = {
-            apiKey: "AIzaSyD28dCn5jcg7gptfMEssSNKAG035D-qkYo",
-            authDomain: "adryvo-ai.firebaseapp.com",
-            projectId: "adryvo-ai",
-            storageBucket: "adryvo-ai.firebasestorage.app",
-            messagingSenderId: "1018885451999",
-            appId: "1:1018885451999:web:32d8f99be5e4f7fde7f96a"
+            apiKey: "AIzaSyDVyzcpklnT0hRqTS128nKL",
+            authDomain: "adryvo.firebaseapp.com",
+            projectId: "adryvo",
+            storageBucket: "adryvo.firebasestorage.app",
+            messagingSenderId: "814950964069",
+            appId: "1:814950964069:web:9609bcaecab4f7cdd95f8c",
+            measurementId: "G-MMVMJINQ7J"
         };
 
         // Initialize Firebase
@@ -27,6 +28,10 @@
         window.handleSignUp = function() {
             const email = document.getElementById('signup-email').value;
             const pass = document.getElementById('signup-pass').value;
+            if(!email || !pass) {
+                alert("Please fill all fields");
+                return;
+            }
             createUserWithEmailAndPassword(auth, email, pass)
                 .then((userCredential) => {
                     alert("Sign up successful!");
@@ -40,6 +45,10 @@
         window.handleLogin = function() {
             const email = document.getElementById('login-email').value;
             const pass = document.getElementById('login-pass').value;
+            if(!email || !pass) {
+                alert("Please fill all fields");
+                return;
+            }
             signInWithEmailAndPassword(auth, email, pass)
                 .then((userCredential) => {
                     alert("Login successful!");
@@ -62,8 +71,6 @@
         onAuthStateChanged(auth, (user) => {
             if (user) {
                 showDashboard();
-            } else {
-                // Stay on home/auth
             }
         });
     </script>
@@ -97,7 +104,6 @@
             text-align: center;
         }
 
-        /* Screens */
         #home-screen h1, #dashboard-screen h1 {
             font-size: 28px;
             margin-bottom: 10px;
@@ -237,6 +243,10 @@
         <!-- Sign Up Screen -->
         <div id="signup-screen" class="auth-screen">
             <h2>Create Account</h2>
+            <div class="form-group">
+                <label>Full Name</label>
+                <input type="text" id="signup-name" placeholder="Enter your name">
+            </div>
             <div class="form-group">
                 <label>Email</label>
                 <input type="email" id="signup-email" placeholder="Enter your email">

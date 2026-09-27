@@ -44,13 +44,13 @@
         }
 
         function switchTab(tabId) {
-            const views = ['home', 'explore', 'history', 'pricing', 'login', 'signup', 'dashboard'];
+            const views = ['home', 'explore', 'history', 'pricing', 'login', 'signup'];
             views.forEach(v => {
                 const el = document.getElementById(`view-${v}`);
                 if (el) el.style.display = 'none';
             });
 
-            if ((tabId === 'dashboard' || tabId === 'history') && !currentUser) {
+            if (tabId === 'history' && !currentUser) {
                 switchTab('login');
                 return;
             }
@@ -66,7 +66,7 @@
             const pass = document.getElementById('signup-pass').value;
             if(!email || !pass) { alert("Please fill all fields"); return; }
             auth.createUserWithEmailAndPassword(email, pass)
-                .then(() => { alert("Account created successfully!"); switchTab('dashboard'); })
+                .then(() => { alert("Account created successfully!"); switchTab('home'); })
                 .catch(err => alert(err.message));
         }
 
@@ -75,7 +75,7 @@
             const pass = document.getElementById('login-pass').value;
             if(!email || !pass) { alert("Please fill all fields"); return; }
             auth.signInWithEmailAndPassword(email, pass)
-                .then(() => { switchTab('dashboard'); })
+                .then(() => { switchTab('home'); })
                 .catch(err => alert(err.message));
         }
 
@@ -83,18 +83,7 @@
             auth.signOut().then(() => { switchTab('home'); });
         }
 
-        function setPrompt(text) {
-            document.getElementById('ai-prompt').value = text;
-            switchTab('dashboard');
-        }
-
         function generateAIImage() {
-            if(!currentUser) {
-                alert("Please sign in to generate images!");
-                switchTab('login');
-                return;
-            }
-
             const prompt = document.getElementById('ai-prompt').value;
             const style = document.getElementById('ai-style').value;
             const ratio = document.getElementById('ai-ratio').value;
@@ -107,7 +96,7 @@
             else if(ratio === '9:16') { width = 540; height = 960; }
 
             resultBox.innerHTML = `
-                <div class="loading-container">
+                <div class="loading-container" style="text-align:center; padding: 30px;">
                     <div class="spinner"></div>
                     <p style="color: var(--primary); margin-top: 15px; font-weight: 500;">Synthesizing your masterpiece...</p>
                 </div>
@@ -125,7 +114,7 @@
                         </div>
                         <div class="result-meta">
                             <p><strong>Prompt:</strong> ${prompt} <span class="badge-tag">${style}</span></p>
-                            <div class="result-actions">
+                            <div class="result-actions" style="margin-top: 10px; display: flex; gap: 10px; justify-content: center;">
                                 <a href="${imageUrl}" target="_blank" download="adryvo-ai.jpg" class="btn-primary-sm">📥 Download</a>
                                 <button class="btn-outline-sm" onclick="saveToHistory('${imageUrl}', '${prompt.replace(/'/g, "")}')">💾 Save to History</button>
                             </div>
@@ -136,7 +125,11 @@
         }
 
         function saveToHistory(url, prompt) {
-            if (!currentUser) return;
+            if (!currentUser) {
+                alert("Please Sign In to save creations to history!");
+                switchTab('login');
+                return;
+            }
             let history = JSON.parse(localStorage.getItem(`adryvo_history_${currentUser.uid}`) || '[]');
             history.unshift({ url, prompt, date: new Date().toLocaleDateString() });
             localStorage.setItem(`adryvo_history_${currentUser.uid}`, JSON.stringify(history));
@@ -150,7 +143,7 @@
             let history = JSON.parse(localStorage.getItem(`adryvo_history_${currentUser.uid}`) || '[]');
             
             if (history.length === 0) {
-                grid.innerHTML = `<div class="empty-state"><p>No creations found. Head over to Studio to create some!</p></div>`;
+                grid.innerHTML = `<div class="empty-state"><p>No creations found. Create some from the home page!</p></div>`;
                 return;
             }
 
@@ -203,75 +196,50 @@
 
         .main-container { flex: 1; max-width: 1200px; width: 100%; margin: 0 auto; padding: 40px 20px; }
 
-        .hero { display: grid; grid-template-columns: 1.2fr 1fr; gap: 50px; align-items: center; padding: 30px 0; }
+        .hero { text-align: center; max-width: 800px; margin: 0 auto 40px auto; }
         .hero-tag { display: inline-flex; align-items: center; gap: 6px; background: var(--accent-glow); border: 1px solid var(--primary); color: var(--primary); padding: 6px 14px; border-radius: 30px; font-size: 12px; font-weight: 600; margin-bottom: 20px; }
-        .hero-text h1 { font-size: 48px; line-height: 1.1; margin-bottom: 20px; font-weight: 800; }
-        .hero-text h1 span { background: linear-gradient(135deg, #38bdf8, #818cf8); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
-        .hero-text p { color: var(--text-muted); font-size: 16px; margin-bottom: 30px; line-height: 1.6; }
-        .hero-btns { display: flex; gap: 15px; flex-wrap: wrap; }
-        .hero-collage { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
-        .hero-collage img { width: 100%; height: 130px; object-fit: cover; border-radius: 14px; border: 1px solid var(--border-color); box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
+        .hero h1 { font-size: 44px; line-height: 1.15; margin-bottom: 15px; font-weight: 800; }
+        .hero h1 span { background: linear-gradient(135deg, #38bdf8, #818cf8); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+        .hero p { color: var(--text-muted); font-size: 16px; margin-bottom: 30px; line-height: 1.6; }
+
+        /* Direct Generator Box on Home */
+        .generator-box { background: var(--bg-card); backdrop-filter: blur(20px); border: 1px solid var(--border-color); border-radius: 24px; padding: 30px; margin-bottom: 30px; box-shadow: 0 20px 40px rgba(0,0,0,0.4); text-align: left; }
+        .prompt-input-group textarea { width: 100%; background: rgba(3, 7, 18, 0.8); border: 1px solid var(--border-color); border-radius: 14px; padding: 18px; color: white; font-size: 15px; resize: none; height: 100px; transition: 0.2s; }
+        .prompt-input-group textarea:focus { outline: none; border-color: var(--primary); box-shadow: 0 0 20px var(--accent-glow); }
+        .controls-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)) auto; gap: 15px; margin-top: 20px; align-items: center; }
+        .select-ctrl { background: rgba(3, 7, 18, 0.8); border: 1px solid var(--border-color); color: var(--text-main); padding: 14px; border-radius: 12px; font-size: 14px; width: 100%; }
 
         .auth-wrapper { display: flex; justify-content: center; align-items: center; min-height: 70vh; padding: 20px; position: relative; }
-        .auth-card { width: 100%; max-width: 440px; background: var(--bg-card); backdrop-filter: blur(20px); border: 1px solid var(--border-color); border-radius: 24px; padding: 40px; text-align: center; box-shadow: 0 25px 50px rgba(0, 0, 0, 0.7), 0 0 40px rgba(56, 189, 248, 0.1); }
+        .auth-card { width: 100%; max-width: 440px; background: var(--bg-card); backdrop-filter: blur(20px); border: 1px solid var(--border-color); border-radius: 24px; padding: 40px; text-align: center; box-shadow: 0 25px 50px rgba(0, 0, 0, 0.7); }
         .auth-logo-badge { width: 54px; height: 54px; background: var(--accent-glow); border: 1px solid var(--primary); border-radius: 16px; display: flex; align-items: center; justify-content: center; margin: 0 auto 20px auto; color: var(--primary); }
         .auth-card h2 { font-size: 26px; font-weight: 700; margin-bottom: 8px; }
         .auth-card p.auth-subtitle { font-size: 13px; color: var(--text-muted); margin-bottom: 30px; }
 
         .form-group { text-align: left; margin-bottom: 20px; }
         .form-group label { display: block; font-size: 11px; font-weight: 700; color: var(--text-muted); margin-bottom: 8px; text-transform: uppercase; letter-spacing: 1px; }
-        .form-group input { width: 100%; padding: 14px 18px; background: rgba(3, 7, 18, 0.8); border: 1px solid var(--border-color); border-radius: 12px; color: white; font-size: 15px; transition: 0.2s; }
+        .form-group input { width: 100%; padding: 14px 18px; background: rgba(3, 7, 18, 0.8); border: 1px solid var(--border-color); border-radius: 12px; color: white; font-size: 15px; }
         .form-group input:focus { outline: none; border-color: var(--primary); box-shadow: 0 0 20px var(--accent-glow); }
-        .auth-btn { width: 100%; padding: 14px; font-size: 15px; font-weight: 700; border-radius: 12px; margin-top: 10px; cursor: pointer; border: none; background: linear-gradient(135deg, var(--primary), var(--primary-hover)); color: #030712; box-shadow: 0 8px 25px rgba(56, 189, 248, 0.4); transition: transform 0.2s; }
-        .auth-btn:hover { transform: translateY(-2px); }
+        .auth-btn { width: 100%; padding: 14px; font-size: 15px; font-weight: 700; border-radius: 12px; margin-top: 10px; cursor: pointer; border: none; background: linear-gradient(135deg, var(--primary), var(--primary-hover)); color: #030712; box-shadow: 0 8px 25px rgba(56, 189, 248, 0.4); }
         .auth-footer-text { margin-top: 25px; font-size: 13px; color: var(--text-muted); }
         .auth-footer-text span { color: var(--primary); font-weight: 600; cursor: pointer; }
 
-        /* Studio Redesign */
-        .generator-box { background: var(--bg-card); backdrop-filter: blur(20px); border: 1px solid var(--border-color); border-radius: 24px; padding: 35px; margin-bottom: 30px; box-shadow: 0 20px 40px rgba(0,0,0,0.4); }
-        .generator-header { display: flex; align-items: center; gap: 12px; margin-bottom: 20px; }
-        .generator-header h3 { font-size: 22px; font-weight: 700; }
-        .prompt-input-group textarea { width: 100%; background: rgba(3, 7, 18, 0.8); border: 1px solid var(--border-color); border-radius: 14px; padding: 18px; color: white; font-size: 15px; resize: none; height: 110px; transition: 0.2s; }
-        .prompt-input-group textarea:focus { outline: none; border-color: var(--primary); box-shadow: 0 0 20px var(--accent-glow); }
-        
-        .controls-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)) auto; gap: 15px; margin-top: 20px; align-items: center; }
-        .select-ctrl { background: rgba(3, 7, 18, 0.8); border: 1px solid var(--border-color); color: var(--text-main); padding: 14px; border-radius: 12px; font-size: 14px; width: 100%; }
-        
         .result-card { background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 20px; padding: 25px; text-align: center; margin-top: 25px; backdrop-filter: blur(20px); }
         .image-wrapper img { width: 100%; max-width: 600px; border-radius: 14px; box-shadow: 0 15px 35px rgba(0,0,0,0.6); border: 1px solid var(--border-color); }
-        .result-meta { margin-top: 18px; display: flex; flex-direction: column; gap: 15px; align-items: center; }
-        .result-actions { display: flex; gap: 12px; }
         .badge-tag { background: var(--accent-glow); color: var(--primary); padding: 3px 8px; border-radius: 6px; font-size: 11px; font-weight: 600; }
 
         .gallery-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 25px; }
-        .gallery-item { background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 18px; overflow: hidden; transition: transform 0.2s; }
-        .gallery-item:hover { transform: translateY(-4px); }
+        .gallery-item { background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 18px; overflow: hidden; }
         .gallery-item img { width: 100%; height: 260px; object-fit: cover; background: #000; }
         .gallery-info { padding: 16px; }
         .gallery-info p { font-size: 14px; color: var(--text-main); margin-bottom: 6px; font-weight: 600; }
         .gallery-info span { font-size: 11px; color: var(--text-muted); }
         .empty-state { grid-column: 1 / -1; text-align: center; padding: 60px; background: var(--bg-card); border-radius: 18px; color: var(--text-muted); border: 1px solid var(--border-color); }
 
-        .pricing-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 25px; margin-top: 30px; }
-        .price-card { background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 20px; padding: 35px; text-align: center; position: relative; backdrop-filter: blur(20px); }
-        .price-card.popular { border-color: var(--primary); box-shadow: 0 0 30px var(--accent-glow); }
-        .badge { position: absolute; top: -14px; left: 50%; transform: translateX(-50%); background: var(--primary); color: #030712; font-size: 11px; font-weight: 800; padding: 4px 14px; border-radius: 20px; text-transform: uppercase; }
-        .price-card h3 { font-size: 24px; margin-bottom: 8px; font-weight: 700; }
-        .price-card .price { font-size: 38px; font-weight: 800; color: var(--primary); margin: 20px 0; }
-        .price-card ul { list-style: none; text-align: left; margin-bottom: 30px; color: var(--text-muted); font-size: 14px; }
-        .price-card li { margin-bottom: 12px; }
-
-        .stats-bar { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 20px; padding: 25px; margin: 40px 0; text-align: center; backdrop-filter: blur(20px); }
-        .stat-item h3 { font-size: 28px; font-weight: 800; color: var(--primary); margin-bottom: 6px; }
-        .stat-item p { font-size: 13px; color: var(--text-muted); }
-
         footer { border-top: 1px solid var(--border-color); padding: 25px 5%; display: flex; justify-content: space-between; align-items: center; color: var(--text-muted); font-size: 12px; background: rgba(3, 7, 18, 0.9); margin-top: auto; flex-wrap: wrap; gap: 10px; }
 
         @media(max-width: 768px) {
-            .hero { grid-template-columns: 1fr; }
             .nav-links { display: none; }
-            .hero-text h1 { font-size: 36px; }
-            .stats-bar { grid-template-columns: 1fr; }
+            .hero h1 { font-size: 32px; }
             .controls-grid { grid-template-columns: 1fr; }
         }
     </style>
@@ -284,63 +252,28 @@
             ADRYVO <span>AI</span>
         </div>
         <ul class="nav-links">
-            <li><a onclick="switchTab('home')">Home</a></li>
+            <li><a onclick="switchTab('home')">Home & Studio</a></li>
             <li><a onclick="switchTab('explore')">Explore</a></li>
-            <li><a onclick="switchTab('dashboard')">Studio</a></li>
             <li><a onclick="switchTab('history')">History</a></li>
-            <li><a onclick="switchTab('pricing')">Pricing</a></li>
         </ul>
         <div class="nav-actions" id="nav-auth-btn"></div>
     </nav>
 
     <div class="main-container">
 
-        <!-- 1. HOME VIEW -->
+        <!-- 1. HOME & STUDIO DIRECT PAGE -->
         <div id="view-home">
             <section class="hero">
-                <div class="hero-text">
-                    <span class="hero-tag">✨ Next-Gen AI Image Generator</span>
-                    <h1>Transform Words Into Epic <span>Visual Masterpieces</span></h1>
-                    <p>Unlock boundless creativity with Adryvo AI. Generate ultra-realistic artwork, cinematic scenes, and futuristic designs instantly.</p>
-                    <div class="hero-btns">
-                        <button class="btn-primary-sm" style="padding: 12px 24px;" onclick="switchTab('dashboard')">Start Creating Free →</button>
-                        <button class="btn-outline-sm" style="padding: 12px 24px;" onclick="switchTab('explore')">Explore Community</button>
-                    </div>
-                </div>
-                <div class="hero-collage">
-                    <img src="https://image.pollinations.ai/prompt/cyberpunk%20car" alt="AI Art">
-                    <img src="https://image.pollinations.ai/prompt/fantasy%20castle" alt="AI Art">
-                    <img src="https://image.pollinations.ai/prompt/luxurious%20perfume%20bottle" alt="AI Art">
-                </div>
+                <span class="hero-tag">✨ Next-Gen AI Image Generator</span>
+                <h1>Transform Words Into Epic <span>Visual Masterpieces</span></h1>
+                <p>Type your imagination below and generate high-end artwork instantly.</p>
             </section>
 
-            <div class="stats-bar">
-                <div class="stat-item"><h3>10M+</h3><p>Generations Completed</p></div>
-                <div class="stat-item"><h3>99.9%</h3><p>Lightning Fast Speed</p></div>
-                <div class="stat-item"><h3>4.9 ★</h3><p>Loved by Creators</p></div>
-            </div>
-        </div>
-
-        <!-- 2. EXPLORE VIEW -->
-        <div id="view-explore" style="display: none;">
-            <h2 style="margin-bottom: 12px; font-size: 28px; font-weight: 800;">Community Showcase</h2>
-            <p style="color: var(--text-muted); margin-bottom: 25px;">Discover stunning artworks crafted by creators worldwide.</p>
-            <div class="gallery-grid">
-                <div class="gallery-item"><img src="https://image.pollinations.ai/prompt/majestic%20lion%20portrait" alt="Art"><div class="gallery-info"><p>Majestic Lion Portrait</p><span>Photorealistic</span></div></div>
-                <div class="gallery-item"><img src="https://image.pollinations.ai/prompt/futuristic%20sci-fi%20city%20skyline" alt="Art"><div class="gallery-info"><p>Sci-Fi City Skyline</p><span>Cinematic</span></div></div>
-                <div class="gallery-item"><img src="https://image.pollinations.ai/prompt/abstract%20neon%20fluid%20art" alt="Art"><div class="gallery-info"><p>Neon Fluid Abstract</p><span>3D Render</span></div></div>
-            </div>
-        </div>
-
-        <!-- 3. DASHBOARD / STUDIO VIEW -->
-        <div id="view-dashboard" style="display: none;">
+            <!-- Direct Prompt Box on Main Page -->
             <div class="generator-box">
-                <div class="generator-header">
-                    <span style="font-size: 24px;">🎨</span>
-                    <div>
-                        <h3>AI Creative Studio</h3>
-                        <p style="color: var(--text-muted); font-size: 13px;">Craft breathtaking images using state-of-the-art AI models.</p>
-                    </div>
+                <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 15px;">
+                    <span style="font-size: 20px;">🎨</span>
+                    <h3 style="font-size: 18px; font-weight: 700;">AI Creative Generator Bar</h3>
                 </div>
                 <div class="prompt-input-group">
                     <textarea id="ai-prompt" placeholder="Describe your imagination in detail... (e.g., A futuristic cyberpunk motorcycle parked in neon rain)"></textarea>
@@ -360,49 +293,29 @@
                     <button class="btn-primary-sm" style="padding: 14px 24px;" onclick="generateAIImage()">✨ Generate Art</button>
                 </div>
             </div>
+
             <div id="generation-result"></div>
         </div>
 
-        <!-- 4. HISTORY VIEW -->
+        <!-- 2. EXPLORE VIEW -->
+        <div id="view-explore" style="display: none;">
+            <h2 style="margin-bottom: 12px; font-size: 28px; font-weight: 800;">Community Showcase</h2>
+            <p style="color: var(--text-muted); margin-bottom: 25px;">Discover stunning artworks crafted by creators worldwide.</p>
+            <div class="gallery-grid">
+                <div class="gallery-item"><img src="https://image.pollinations.ai/prompt/majestic%20lion%20portrait" alt="Art"><div class="gallery-info"><p>Majestic Lion Portrait</p><span>Photorealistic</span></div></div>
+                <div class="gallery-item"><img src="https://image.pollinations.ai/prompt/futuristic%20sci-fi%20city%20skyline" alt="Art"><div class="gallery-info"><p>Sci-Fi City Skyline</p><span>Cinematic</span></div></div>
+                <div class="gallery-item"><img src="https://image.pollinations.ai/prompt/abstract%20neon%20fluid%20art" alt="Art"><div class="gallery-info"><p>Neon Fluid Abstract</p><span>3D Render</span></div></div>
+            </div>
+        </div>
+
+        <!-- 3. HISTORY VIEW -->
         <div id="view-history" style="display: none;">
             <h2 style="margin-bottom: 12px; font-size: 28px; font-weight: 800;">My Generation History</h2>
             <p style="color: var(--text-muted); margin-bottom: 25px;">All your saved creations in one place.</p>
             <div class="gallery-grid" id="history-grid"></div>
         </div>
 
-        <!-- 5. PRICING VIEW -->
-        <div id="view-pricing" style="display: none;">
-            <div style="text-align: center; margin-bottom: 40px;">
-                <h2 style="font-size: 32px; font-weight: 800; margin-bottom: 10px;">Flexible Plans for Creators</h2>
-                <p style="color: var(--text-muted);">Choose the plan that fits your creative journey.</p>
-            </div>
-            <div class="pricing-grid">
-                <div class="price-card">
-                    <h3>Starter</h3>
-                    <div class="price">$0<span>/mo</span></div>
-                    <ul>
-                        <li>✔ 50 Free Generations</li>
-                        <li>✔ Standard Speed</li>
-                        <li>✔ Community Support</li>
-                    </ul>
-                    <button class="btn-outline-sm" style="width: 100%;" onclick="switchTab('signup')">Get Started</button>
-                </div>
-                <div class="price-card popular">
-                    <div class="badge">Most Popular</div>
-                    <h3>Pro Studio</h3>
-                    <div class="price">$12<span>/mo</span></div>
-                    <ul>
-                        <li>✔ Unlimited Generations</li>
-                        <li>✔ Priority Lightning Speed</li>
-                        <li>✔ Commercial License</li>
-                        <li>✔ HD Upscaling</li>
-                    </ul>
-                    <button class="btn-primary-sm" style="width: 100%;" onclick="switchTab('signup')">Upgrade to Pro</button>
-                </div>
-            </div>
-        </div>
-
-        <!-- 6. LOGIN VIEW -->
+        <!-- 4. LOGIN VIEW -->
         <div id="view-login" style="display: none;">
             <div class="auth-wrapper">
                 <div class="auth-card fade-in">
@@ -410,7 +323,7 @@
                         <svg width="24" height="24" viewBox="0 0 24 24" fill="none"><path d="M12 2L2 7L12 12L22 7L12 2Z" fill="#38bdf8"/><path d="M2 17L12 22L22 17" stroke="#38bdf8" stroke-width="2"/><path d="M2 12L12 17L22 12" stroke="#38bdf8" stroke-width="2"/></svg>
                     </div>
                     <h2>Welcome Back</h2>
-                    <p class="auth-subtitle">Sign in to resume your creative workflow</p>
+                    <p class="auth-subtitle">Sign in to save your art to history</p>
                     
                     <div class="form-group">
                         <label>Email Address</label>
@@ -421,14 +334,14 @@
                         <input type="password" id="login-pass" placeholder="••••••••">
                     </div>
                     
-                    <button class="auth-btn" onclick="handleLogin()">Sign In to Studio</button>
+                    <button class="auth-btn" onclick="handleLogin()">Sign In</button>
                     
                     <p class="auth-footer-text">Don't have an account? <span onclick="switchTab('signup')">Create Account</span></p>
                 </div>
             </div>
         </div>
 
-        <!-- 7. SIGNUP VIEW -->
+        <!-- 5. SIGNUP VIEW -->
         <div id="view-signup" style="display: none;">
             <div class="auth-wrapper">
                 <div class="auth-card fade-in">

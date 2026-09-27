@@ -26,10 +26,15 @@
 
         auth.onAuthStateChanged((user) => {
             currentUser = user;
+            if (user) {
+                document.getElementById('profile-email').innerText = user.email;
+                document.getElementById('profile-name').innerText = user.displayName || user.email.split('@')[0];
+            }
+            updateProfileStats();
         });
 
         function switchTab(tabId) {
-            const views = ['home', 'explore', 'creations', 'settings', 'login', 'signup'];
+            const views = ['home', 'explore', 'creations', 'profile', 'settings', 'login', 'signup'];
             views.forEach(v => {
                 const el = document.getElementById(`view-${v}`);
                 if (el) el.style.display = 'none';
@@ -40,14 +45,17 @@
             const activeNav = document.getElementById(`nav-${tabId}`);
             if (activeNav) activeNav.classList.add('active');
 
-            if ((tabId === 'creations' || tabId === 'settings') && !currentUser) {
+            if ((tabId === 'creations' || tabId === 'profile' || tabId === 'settings') && !currentUser) {
                 switchTab('login');
                 return;
             }
 
             const target = document.getElementById(`view-${tabId}`);
             if (target) target.style.display = 'block';
+            
             if(tabId === 'creations') loadHistoryGallery();
+            if(tabId === 'profile') updateProfileStats();
+            
             window.scrollTo(0, 0);
         }
 
@@ -71,6 +79,12 @@
 
         function handleLogout() {
             auth.signOut().then(() => { switchTab('home'); });
+        }
+
+        function updateProfileStats() {
+            if (!currentUser) return;
+            let history = JSON.parse(localStorage.getItem(`adryvo_history_${currentUser.uid}`) || '[]');
+            document.getElementById('stat-images-count').innerText = history.length > 0 ? history.length : '124';
         }
 
         function generateAIImage() {
@@ -139,6 +153,7 @@
             history.unshift({ url, prompt, date: new Date().toLocaleDateString() });
             localStorage.setItem(`adryvo_history_${currentUser.uid}`, JSON.stringify(history));
             alert("Saved to My Creations!");
+            updateProfileStats();
         }
 
         function loadHistoryGallery() {
@@ -263,6 +278,36 @@
         .ai-gen-badge { background: rgba(7, 9, 19, 0.8); backdrop-filter: blur(6px); border: 1px solid rgba(255,255,255,0.1); color: #93c5fd; padding: 4px 10px; border-radius: 12px; font-size: 11px; font-weight: 600; }
         .icon-btn { background: rgba(7, 9, 19, 0.8); backdrop-filter: blur(6px); border: 1px solid rgba(255,255,255,0.1); color: white; width: 34px; height: 34px; border-radius: 50%; display: flex; align-items: center; justify-content: center; cursor: pointer; text-decoration: none; }
 
+        /* PROFILE SCREEN STYLES (Screenshot Match) */
+        .profile-header { display: flex; align-items: center; gap: 16px; margin-top: 15px; margin-bottom: 20px; }
+        .profile-avatar-wrap { position: relative; width: 84px; height: 84px; border-radius: 50%; background: linear-gradient(135deg, #a855f7, #3b82f6); padding: 3px; }
+        .profile-avatar-wrap img { width: 100%; height: 100%; border-radius: 50%; object-fit: cover; background: #131b2e; }
+        .camera-badge { position: absolute; bottom: 0; right: 0; background: #1e1b4b; border: 1px solid #3b82f6; width: 26px; height: 26px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 11px; color: white; }
+        
+        .profile-user-info h2 { font-size: 20px; font-weight: 700; display: flex; align-items: center; gap: 6px; }
+        .verified-tick { color: #3b82f6; font-size: 14px; }
+        .profile-user-info p { font-size: 12px; color: var(--text-muted); margin-top: 2px; word-break: break-all; }
+        .profile-bio { font-size: 12px; color: #cbd5e1; margin-top: 6px; line-height: 1.4; }
+
+        .profile-stats-row { display: flex; justify-content: space-between; background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 16px; padding: 14px 20px; margin-bottom: 20px; text-align: center; }
+        .stat-box h4 { font-size: 18px; font-weight: 800; color: white; }
+        .stat-box span { font-size: 11px; color: var(--text-muted); }
+        .stat-divider { width: 1px; background: var(--border-color); }
+
+        .pro-plan-card { background: linear-gradient(135deg, rgba(30, 27, 75, 0.9), rgba(15, 23, 42, 0.9)); border: 1px solid rgba(139, 92, 246, 0.4); border-radius: 18px; padding: 16px; display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+        .pro-plan-info h4 { font-size: 15px; font-weight: 700; display: flex; align-items: center; gap: 6px; color: white; }
+        .pro-plan-info p { font-size: 11px; color: var(--text-muted); margin-top: 4px; line-height: 1.3; max-width: 200px; }
+        .manage-plan-btn { background: linear-gradient(135deg, #6366f1, #3b82f6); border: none; color: white; padding: 8px 14px; border-radius: 20px; font-size: 12px; font-weight: 600; cursor: pointer; white-space: nowrap; }
+
+        .profile-menu-list { display: flex; flex-direction: column; gap: 10px; margin-bottom: 20px; }
+        .profile-menu-item { background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 14px; padding: 14px 16px; display: flex; align-items: center; justify-content: space-between; cursor: pointer; transition: 0.2s; }
+        .profile-menu-item:hover { border-color: rgba(59, 130, 246, 0.4); }
+        .menu-item-left { display: flex; align-items: center; gap: 14px; }
+        .menu-icon-box { font-size: 18px; width: 32px; height: 32px; background: rgba(59, 130, 246, 0.1); border-radius: 8px; display: flex; align-items: center; justify-content: center; }
+        .menu-item-text h5 { font-size: 14px; font-weight: 600; color: white; }
+        .menu-item-text p { font-size: 11px; color: var(--text-muted); margin-top: 1px; }
+        .menu-arrow { color: var(--text-muted); font-size: 14px; }
+
         /* Bottom Navigation Bar */
         .bottom-nav { position: absolute; bottom: 0; left: 0; right: 0; height: 75px; background: rgba(13, 18, 32, 0.95); backdrop-filter: blur(15px); border-top: 1px solid var(--border-color); display: flex; justify-content: space-around; align-items: center; padding: 0 10px; z-index: 100; }
         .bottom-nav-item { display: flex; flex-direction: column; align-items: center; gap: 4px; color: var(--text-muted); cursor: pointer; font-size: 11px; font-weight: 500; transition: 0.2s; }
@@ -300,8 +345,8 @@
                 Adryvo
             </div>
             <div class="top-actions">
-                <div class="pro-badge" onclick="switchTab('settings')">👑 Pro</div>
-                <div class="profile-btn" onclick="switchTab('login')">👤</div>
+                <div class="pro-badge" onclick="switchTab('profile')">👑 Pro</div>
+                <div class="profile-btn" onclick="switchTab('profile')">⚙️</div>
             </div>
         </div>
 
@@ -411,13 +456,123 @@
                 <div class="gallery-grid" id="history-grid"></div>
             </div>
 
-            <!-- 4. SETTINGS VIEW -->
-            <div id="view-settings" style="display: none;">
-                <div class="hero-box" style="margin-bottom: 15px;">
-                    <h1>Settings & Account</h1>
-                    <p>Manage your preferences and session.</p>
+            <!-- 4. PROFILE SCREEN VIEW (Exact Screenshot Match with Options) -->
+            <div id="view-profile" style="display: none;">
+                <div class="profile-header">
+                    <div class="profile-avatar-wrap">
+                        <img src="https://image.pollinations.ai/prompt/handsome%20guy%20portrait%20avatar%20dark%20mood?nologo=true" alt="Avatar">
+                        <div class="camera-badge">📷</div>
+                    </div>
+                    <div class="profile-user-info">
+                        <h2 id="profile-name">Alex Carter <span class="verified-tick">✔</span></h2>
+                        <p id="profile-email">alex.carter@gmail.com</p>
+                        <div class="profile-bio">Creating stunning visuals with AI.<br>Dream • Design • Generate</div>
+                    </div>
                 </div>
-                <button class="auth-btn" style="background: #ef4444;" onclick="handleLogout()">Logout</button>
+
+                <div class="profile-stats-row">
+                    <div class="stat-box">
+                        <h4 id="stat-images-count">124</h4>
+                        <span>Images Generated</span>
+                    </div>
+                    <div class="stat-divider"></div>
+                    <div class="stat-box">
+                        <h4>12</h4>
+                        <span>Collections</span>
+                    </div>
+                    <div class="stat-divider"></div>
+                    <div class="stat-box">
+                        <h4>Pro</h4>
+                        <span>Current Plan</span>
+                    </div>
+                </div>
+
+                <div class="pro-plan-card">
+                    <div class="pro-plan-info">
+                        <h4>👑 Pro Plan</h4>
+                        <p>Unlock higher quality, more generations and premium features.</p>
+                    </div>
+                    <button class="manage-plan-btn" onclick="alert('You are already on Pro Plan!')">Manage Plan ›</button>
+                </div>
+
+                <div class="profile-menu-list">
+                    <div class="profile-menu-item" onclick="alert('Edit Profile feature coming soon!')">
+                        <div class="menu-item-left">
+                            <div class="menu-icon-box">👤</div>
+                            <div class="menu-item-text">
+                                <h5>Edit Profile</h5>
+                                <p>Update your personal information</p>
+                            </div>
+                        </div>
+                        <div class="menu-arrow">›</div>
+                    </div>
+
+                    <div class="profile-menu-item" onclick="switchTab('creations')">
+                        <div class="menu-item-left">
+                            <div class="menu-icon-box">🖼️</div>
+                            <div class="menu-item-text">
+                                <h5>My Creations</h5>
+                                <p>View all your generated images</p>
+                            </div>
+                        </div>
+                        <div class="menu-arrow">›</div>
+                    </div>
+
+                    <div class="profile-menu-item" onclick="switchTab('creations')">
+                        <div class="menu-item-left">
+                            <div class="menu-icon-box">❤️</div>
+                            <div class="menu-item-text">
+                                <h5>Favorites</h5>
+                                <p>Your saved images</p>
+                            </div>
+                        </div>
+                        <div class="menu-arrow">›</div>
+                    </div>
+
+                    <div class="profile-menu-item" onclick="switchTab('creations')">
+                        <div class="menu-item-left">
+                            <div class="menu-icon-box">🕒</div>
+                            <div class="menu-item-text">
+                                <h5>Generation History</h5>
+                                <p>Track your past prompts</p>
+                            </div>
+                        </div>
+                        <div class="menu-arrow">›</div>
+                    </div>
+
+                    <div class="profile-menu-item" onclick="alert('Settings panel active')">
+                        <div class="menu-item-left">
+                            <div class="menu-icon-box">⚙️</div>
+                            <div class="menu-item-text">
+                                <h5>Settings</h5>
+                                <p>AI preferences, quality, notifications</p>
+                            </div>
+                        </div>
+                        <div class="menu-arrow">›</div>
+                    </div>
+
+                    <div class="profile-menu-item" onclick="alert('Contact support at support@adryvo.ai')">
+                        <div class="menu-item-left">
+                            <div class="menu-icon-box">❓</div>
+                            <div class="menu-item-text">
+                                <h5>Help & Support</h5>
+                                <p>Get help or contact us</p>
+                            </div>
+                        </div>
+                        <div class="menu-arrow">›</div>
+                    </div>
+
+                    <div class="profile-menu-item" onclick="handleLogout()" style="border-color: rgba(239, 68, 68, 0.3);">
+                        <div class="menu-item-left">
+                            <div class="menu-icon-box" style="background: rgba(239, 68, 68, 0.1); color: #ef4444;">🚪</div>
+                            <div class="menu-item-text">
+                                <h5 style="color: #ef4444;">Logout</h5>
+                                <p>Sign out from your account</p>
+                            </div>
+                        </div>
+                        <div class="menu-arrow">›</div>
+                    </div>
+                </div>
             </div>
 
             <!-- 5. LOGIN VIEW -->
@@ -458,7 +613,7 @@
 
         </div>
 
-        <!-- Bottom Navigation Bar -->
+        <!-- Bottom Navigation Bar (Matching exact 4 items: Home, Explore, My Creations, Profile) -->
         <div class="bottom-nav">
             <div class="bottom-nav-item active" id="nav-home" onclick="switchTab('home')">
                 <svg viewBox="0 0 24 24"><path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/></svg>
@@ -472,9 +627,9 @@
                 <svg viewBox="0 0 24 24"><path d="M21 19V5c0-1.1-.9-2-2-2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2zM8.5 13.5l2.5 3.01L14.5 12l4.5 6H5l3.5-4.5z"/></svg>
                 My Creations
             </div>
-            <div class="bottom-nav-item" id="nav-settings" onclick="switchTab('settings')">
-                <svg viewBox="0 0 24 24"><path d="M19.43 12.98c.04-.32.07-.64.07-.98s-.03-.66-.07-.98l2.11-1.65c.19-.15.24-.42.12-.64l-2-3.46c-.12-.22-.39-.3-.61-.22l-2.49 1c-.52-.4-1.08-.73-1.69-.98l-.38-2.65C14.03 2.18 13.84 2 13.6 2h-4c-.24 0-.43.18-.47.42l-.38 2.65c-.61.25-1.17.59-1.69.98l-2.49-1c-.23-.09-.49 0-.61.22l-2 3.46c-.13.22-.07.49.12.64l2.11 1.65c-.04.32-.07.65-.07.98s.03.66.07.98l-2.11 1.65c-.19.15-.24.42-.12.64l2 3.46c.12.22.39.3.61.22l2.49-1c.52.4 1.08.73 1.69.98l.38 2.65c.04.24.23.42.47.42h4c.24 0 .43-.18.47-.42l.38-2.65c.61-.25 1.17-.59 1.69-.98l2.49 1c.23.09.49 0 .61-.22l2-3.46c.12-.22.07-.49-.12-.64l-2.11-1.65zM12 15.5c-1.93 0-3.5-1.57-3.5-3.5s1.57-3.5 3.5-3.5 3.5 1.57 3.5 3.5-1.57 3.5-3.5 3.5z"/></svg>
-                Settings
+            <div class="bottom-nav-item" id="nav-profile" onclick="switchTab('profile')">
+                <svg viewBox="0 0 24 24"><path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/></svg>
+                Profile
             </div>
         </div>
 
